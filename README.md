@@ -1,1 +1,1 @@
-# Java
+# Java app
