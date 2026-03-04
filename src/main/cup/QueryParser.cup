@@ -1,0 +1,26 @@
+package com.app.query;
+import java_cup.runtime.*;
+import java.util.*;
+parser code {:
+    public List<String> result = new ArrayList<>();
+:}
+terminal SELECT, FROM, WHERE, STAR, COMMA, SEMI, EQ;
+terminal String ID, STRING;
+non terminal stmt_list, stmt;
+non terminal List<String> column_list;
+non terminal query;
+start with stmt_list;
+stmt_list ::= stmt_list stmt | stmt;
+stmt ::= query SEMI;
+query ::= SELECT column_list:cols FROM ID:table
+       {: parser.result.add("QUERY: SELECT " + cols + " FROM " + table); :}
+       | SELECT column_list:cols FROM ID:table WHERE ID:col EQ STRING:val
+       {: parser.result.add("QUERY: SELECT " + cols + " FROM " + table + " WHERE " + col + "=" + val); :}
+       ;
+column_list ::= STAR 
+             {: List<String> l = new ArrayList<>(); l.add("*"); RESULT = l; :}
+             | ID:i
+             {: List<String> l = new ArrayList<>(); l.add(i); RESULT = l; :}
+             | column_list:l COMMA ID:i
+             {: l.add(i); RESULT = l; :}
+             ;

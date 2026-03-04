@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.app.infrastructure.ui.HomeController"
+      spacing="20" alignment="CENTER" style="-fx-padding: 40;">
+    <Label text="%home.title" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+    <Label text="%home.subtitle" style="-fx-font-size: 16px; -fx-opacity: 0.8;"/>
+</VBox>
