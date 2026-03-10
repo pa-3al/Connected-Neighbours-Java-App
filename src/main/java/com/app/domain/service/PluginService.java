@@ -20,41 +20,20 @@ public class PluginService implements PluginUseCase {
     private final LoggerPort logger;
     private final Map<String, PluginMetadata> pluginsMap = new HashMap<>();
     private final Map<String, Plugin> loadedPlugins = new HashMap<>();
-    private final Map<String, Plugin> internalPlugins = new HashMap<>();
 
     public PluginService(PluginRepository pluginRepository, PluginContext pluginContext,
-            I18nPort i18n, LoggerPort logger) {
+                         I18nPort i18n, LoggerPort logger) {
         this.pluginRepository = pluginRepository;
         this.pluginContext = pluginContext;
         this.i18n = i18n;
         this.logger = logger;
-        registerInternalPlugins();
-    }
-
-    private void registerInternalPlugins() {
-    }
-
-    private void addInternalPlugin(Plugin plugin) {
-        internalPlugins.put(plugin.getId(), plugin);
     }
 
     @Override
     public List<PluginMetadata> loadPlugins() {
         List<PluginMetadata> discovered = new ArrayList<>(pluginRepository.discoverAndLoadPlugins());
-
-        for (Plugin plugin : internalPlugins.values()) {
-            discovered.add(new PluginMetadata(
-                    plugin.getId(),
-                    plugin.getName(),
-                    plugin.getVersion(),
-                    plugin.getAuthor() != null ? plugin.getAuthor() : "System",
-                    plugin.getDescription(),
-                    true,
-                    false,
-                    null));
-        }
-
         Map<String, Boolean> savedStates = pluginRepository.loadPluginStates();
+
         pluginsMap.clear();
         loadedPlugins.clear();
 
@@ -65,13 +44,7 @@ public class PluginService implements PluginUseCase {
 
             if (enabled) {
                 try {
-                    Plugin plugin;
-                    if (internalPlugins.containsKey(meta.id())) {
-                        plugin = internalPlugins.get(meta.id());
-                    } else {
-                        plugin = pluginRepository.loadPlugin(meta.id());
-                    }
-
+                    Plugin plugin = pluginRepository.loadPlugin(meta.id());
                     if (plugin != null) {
                         plugin.onLoad(pluginContext);
                         loadedPlugins.put(meta.id(), plugin);
@@ -83,6 +56,7 @@ public class PluginService implements PluginUseCase {
                 }
             }
         }
+
         saveCurrentStates();
         return new ArrayList<>(pluginsMap.values());
     }
@@ -104,13 +78,7 @@ public class PluginService implements PluginUseCase {
 
         logger.info("PluginService", "Enabling plugin: " + pluginId);
         try {
-            Plugin plugin;
-            if (internalPlugins.containsKey(pluginId)) {
-                plugin = internalPlugins.get(pluginId);
-            } else {
-                plugin = pluginRepository.loadPlugin(pluginId);
-            }
-
+            Plugin plugin = pluginRepository.loadPlugin(pluginId);
             if (plugin != null) {
                 plugin.onLoad(pluginContext);
                 loadedPlugins.put(pluginId, plugin);
@@ -122,6 +90,7 @@ public class PluginService implements PluginUseCase {
             logger.error("PluginService", "Failed to enable plugin: " + pluginId, e);
             pluginsMap.put(pluginId, meta.withEnabled(true));
         }
+
         saveCurrentStates();
     }
 
@@ -140,11 +109,9 @@ public class PluginService implements PluginUseCase {
             } catch (Exception e) {
                 logger.error("PluginService", "Error unloading plugin: " + pluginId, e);
             }
-
-            if (!internalPlugins.containsKey(pluginId)) {
-                pluginRepository.unloadPlugin(pluginId);
-            }
         }
+
+        pluginRepository.unloadPlugin(pluginId);
         pluginsMap.put(pluginId, meta.withEnabled(false).withLoaded(false));
         saveCurrentStates();
     }
@@ -164,12 +131,6 @@ public class PluginService implements PluginUseCase {
     @Override
     public void uninstallPlugin(String pluginId) {
         logger.info("PluginService", "Uninstalling plugin: " + pluginId);
-
-        if (internalPlugins.containsKey(pluginId)) {
-            logger.error("PluginService", "Cannot uninstall internal plugin: " + pluginId, null);
-            throw new IllegalArgumentException("Cannot uninstall internal plugin");
-        }
-
         disablePlugin(pluginId);
         pluginRepository.deletePlugin(pluginId);
         pluginsMap.remove(pluginId);
@@ -193,3 +154,4 @@ public class PluginService implements PluginUseCase {
         pluginRepository.savePluginStates(states);
     }
 }
+
