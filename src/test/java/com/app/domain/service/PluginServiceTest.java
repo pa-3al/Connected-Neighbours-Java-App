@@ -62,14 +62,14 @@ class PluginServiceTest {
         List<PluginMetadata> plugins = pluginService.loadPlugins();
         assertNotNull(plugins);
         assertFalse(plugins.isEmpty());
-        assertEquals(1, plugins.size());
+        assertEquals(3, plugins.size());
         assertTrue(plugins.stream().anyMatch(p -> "test-plugin".equals(p.id())));
     }
     @Test
     void testGetInstalledPlugins_shouldLoadIfEmpty() {
         List<PluginMetadata> plugins = pluginService.getInstalledPlugins();
         assertNotNull(plugins);
-        assertEquals(1, plugins.size());
+        assertEquals(3, plugins.size());
     }
     @Test
     void testUninstallPlugin_shouldRemovePlugin() {

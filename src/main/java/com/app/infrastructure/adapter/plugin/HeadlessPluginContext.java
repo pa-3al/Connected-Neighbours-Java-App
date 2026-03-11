@@ -1,5 +1,5 @@
 package com.app.infrastructure.adapter.plugin;
-import com.app.infrastructure.adapter.logging.InfrastructureLogger;
+import com.app.infrastructure.util.DailyLogger;
 import com.app.plugin.Plugin;
 import com.app.plugin.PluginContext;
 import javafx.scene.control.MenuItem;
@@ -42,11 +42,11 @@ public class HeadlessPluginContext implements PluginContext {
     }
     @Override
     public void showNotification(String title, String message) {
-        InfrastructureLogger.logInfo("HeadlessPlugin", title + ": " + message);
+        DailyLogger.logInfo("HeadlessPlugin", title + ": " + message);
     }
     @Override
     public void showError(String title, String message) {
-        InfrastructureLogger.logError("HeadlessPlugin", title + ": " + message, null);
+        DailyLogger.logError("HeadlessPlugin", title + ": " + message, null);
     }
     @Override
     public void registerExportFormat(Plugin.ExportFormat format) {
@@ -85,4 +85,3 @@ public class HeadlessPluginContext implements PluginContext {
         delegate.logError(message, error);
     }
 }
-

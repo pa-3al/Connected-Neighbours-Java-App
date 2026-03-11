@@ -1,7 +1,7 @@
 package com.app.infrastructure.adapter.plugin;
 import com.app.domain.model.PluginMetadata;
 import com.app.domain.port.out.PluginRepository;
-import com.app.infrastructure.adapter.logging.InfrastructureLogger;
+import com.app.infrastructure.util.DailyLogger;
 import com.app.plugin.Plugin;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +35,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                 Files.createDirectories(pluginsDir);
             }
         } catch (IOException e) {
-            InfrastructureLogger.logWarn("PluginAdapter", "Plugin dir creation failed: " + e.getMessage());
+            DailyLogger.logWarn("PluginAdapter", "Plugin dir creation failed: " + e.getMessage());
         }
     }
     @Override
@@ -80,7 +80,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
             }
             return scanForPluginClass(jar, jarFile);
         } catch (IOException e) {
-            InfrastructureLogger.logWarn("PluginAdapter", "Failed to scan JAR: " + jarFile.getName() + " - " + e.getMessage());
+            DailyLogger.logWarn("PluginAdapter", "Failed to scan JAR: " + jarFile.getName() + " - " + e.getMessage());
             return null;
         }
     }
@@ -113,7 +113,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                     }
                     loader.close();
                 } catch (Exception e) {
-                    InfrastructureLogger.logDebug("PluginAdapter", "Class " + className + " is not a plugin: " + e.getMessage());
+                    DailyLogger.logDebug("PluginAdapter", "Class " + className + " is not a plugin: " + e.getMessage());
                 }
             }
         }
@@ -125,7 +125,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
         }
         long size = jarFile.length();
         if (size > maxJarSizeBytes) {
-            InfrastructureLogger.logWarn("PluginLoader", "Plugin JAR exceeds max size (" + size + " > " + maxJarSizeBytes + "): " + jarFile.getName());
+            DailyLogger.logWarn("PluginLoader", "Plugin JAR exceeds max size (" + size + " > " + maxJarSizeBytes + "): " + jarFile.getName());
             return false;
         }
         if (requireManifest) {
@@ -161,7 +161,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                     return scannedPlugin;
                 }
             } catch (IOException e) {
-                InfrastructureLogger.logWarn("PluginLoader", "Error reading JAR: " + jarFile.getName());
+                DailyLogger.logWarn("PluginLoader", "Error reading JAR: " + jarFile.getName());
             }
         }
         return null;
@@ -191,7 +191,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                 }
             }
         } catch (IOException e) {
-            InfrastructureLogger.logError("PluginLoader", "Failed to load plugin JAR: " + jarFile.getName(), e);
+            DailyLogger.logError("PluginLoader", "Failed to load plugin JAR: " + jarFile.getName(), e);
         }
         return null;
     }
@@ -224,7 +224,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
             }
             loader.close();
         } catch (IOException e) {
-            InfrastructureLogger.logDebug("PluginLoader", "Could not search JAR: " + jarFile.getName());
+            DailyLogger.logDebug("PluginLoader", "Could not search JAR: " + jarFile.getName());
         }
         return null;
     }
@@ -235,7 +235,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
             try {
                 loader.close();
             } catch (IOException e) {
-                InfrastructureLogger.logWarn("PluginLoader", "Error closing classloader for: " + pluginId);
+                DailyLogger.logWarn("PluginLoader", "Error closing classloader for: " + pluginId);
             }
         }
     }
@@ -262,7 +262,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                     }
                 }
             } catch (IOException e) {
-                InfrastructureLogger.logWarn("PluginLoader", "Error checking JAR for deletion: " + jarFile.getName());
+                DailyLogger.logWarn("PluginLoader", "Error checking JAR for deletion: " + jarFile.getName());
             }
         }
 
@@ -275,9 +275,9 @@ public class FileSystemPluginAdapter implements PluginRepository {
 
             try {
                 Files.delete(fileToDelete.toPath());
-                InfrastructureLogger.logInfo("PluginLoader", "Deleted plugin JAR: " + fileToDelete.getName());
+                DailyLogger.logInfo("PluginLoader", "Deleted plugin JAR: " + fileToDelete.getName());
             } catch (IOException e) {
-                InfrastructureLogger.logError("PluginLoader", "Failed to delete plugin JAR: " + fileToDelete.getName(), e);
+                DailyLogger.logError("PluginLoader", "Failed to delete plugin JAR: " + fileToDelete.getName(), e);
                 
                 fileToDelete.deleteOnExit();
             }
@@ -291,7 +291,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
             }
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(stateFilePath.toFile(), states);
         } catch (IOException e) {
-            InfrastructureLogger.logError("PluginAdapter", "Failed to save plugin states", e);
+            DailyLogger.logError("PluginAdapter", "Failed to save plugin states", e);
         }
     }
     @Override
@@ -303,9 +303,8 @@ public class FileSystemPluginAdapter implements PluginRepository {
         try {
             return objectMapper.readValue(stateFilePath.toFile(), Map.class);
         } catch (IOException e) {
-            InfrastructureLogger.logWarn("PluginAdapter", "Failed to load plugin states: " + e.getMessage());
+            DailyLogger.logWarn("PluginAdapter", "Failed to load plugin states: " + e.getMessage());
             return new HashMap<>();
         }
     }
 }
-

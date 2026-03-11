@@ -37,7 +37,7 @@ public class HttpUpdateAdapter implements UpdateRepository {
     public CompletableFuture<UpdateInfo> fetchLatestUpdateInfo() {
         return CompletableFuture.supplyAsync(() -> {
             if (!onlineSupplier.get()) {
-                throw new RuntimeException("Mode hors ligne : Impossible de vÃ©rifier les mises Ã  jour.");
+                throw new RuntimeException("Mode hors ligne : Impossible de vérifier les mises à jour.");
             }
             try {
                 String url = configProvider.getUpdateCheckUrl();
@@ -56,7 +56,7 @@ public class HttpUpdateAdapter implements UpdateRepository {
                     throw new RuntimeException("Server returned status: " + response.statusCode());
                 }
             } catch (IOException | InterruptedException e) {
-                com.app.infrastructure.adapter.logging.InfrastructureLogger.logError("UpdateAdapter", "Failed to check for updates");
+                com.app.infrastructure.util.DailyLogger.logError("UpdateAdapter", "Failed to check for updates");
                 throw new RuntimeException("Failed to check for updates: " + e.getMessage(), e);
             }
         });
@@ -65,7 +65,7 @@ public class HttpUpdateAdapter implements UpdateRepository {
     public CompletableFuture<Path> downloadUpdate(String downloadUrl, Path targetPath, Consumer<DownloadProgress> progressCallback) {
         return CompletableFuture.supplyAsync(() -> {
             if (!onlineSupplier.get()) {
-                throw new RuntimeException("Mode hors ligne : Impossible de tÃ©lÃ©charger.");
+                throw new RuntimeException("Mode hors ligne : Impossible de télécharger.");
             }
             try {
                 validateHttpsUrl(downloadUrl);
@@ -98,7 +98,7 @@ public class HttpUpdateAdapter implements UpdateRepository {
                 }
                 return targetPath;
             } catch (IOException | InterruptedException e) {
-                com.app.infrastructure.adapter.logging.InfrastructureLogger.logError("UpdateAdapter", "Failed to download update");
+                com.app.infrastructure.util.DailyLogger.logError("UpdateAdapter", "Failed to download update");
                 throw new RuntimeException("Failed to download update: " + e.getMessage(), e);
             }
         });
@@ -114,4 +114,3 @@ public class HttpUpdateAdapter implements UpdateRepository {
         }
     }
 }
-

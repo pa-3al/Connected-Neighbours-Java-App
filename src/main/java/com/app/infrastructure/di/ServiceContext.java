@@ -1,26 +1,26 @@
 package com.app.infrastructure.di;
 
-import com.app.domain.port.out.AlertRepository;
 import com.app.domain.port.out.I18nPort;
-import com.app.domain.port.out.IncidentRepository;
 import com.app.domain.port.out.LoggerPort;
 import com.app.domain.port.out.QueryEngine;
-import com.app.domain.service.AlertService;
-import com.app.domain.service.IncidentService;
 import com.app.domain.service.PluginService;
 import com.app.domain.service.UpdateService;
 import com.app.infrastructure.adapter.i18n.I18nAdapter;
 import com.app.infrastructure.adapter.logging.LoggerAdapter;
-import com.app.infrastructure.adapter.persistence.DatabaseConfig;
-import com.app.infrastructure.adapter.persistence.JdbcAlertRepository;
-import com.app.infrastructure.adapter.persistence.JdbcIncidentRepository;
-import com.app.infrastructure.adapter.persistence.SchemaInitializer;
 import com.app.infrastructure.adapter.plugin.DefaultPluginContext;
 import com.app.infrastructure.adapter.plugin.FileSystemPluginAdapter;
 import com.app.infrastructure.adapter.plugin.HeadlessPluginContext;
 import com.app.infrastructure.adapter.query.JFlexQueryAdapter;
 import com.app.infrastructure.adapter.update.HttpUpdateAdapter;
 import com.app.infrastructure.config.ConfigProvider;
+import com.app.domain.port.out.IncidentRepository;
+import com.app.domain.port.out.AlertRepository;
+import com.app.domain.service.IncidentService;
+import com.app.domain.service.AlertService;
+import com.app.infrastructure.adapter.persistence.DatabaseConfig;
+import com.app.infrastructure.adapter.persistence.JdbcIncidentRepository;
+import com.app.infrastructure.adapter.persistence.JdbcAlertRepository;
+import com.app.infrastructure.adapter.persistence.SchemaInitializer;
 import com.app.plugin.PluginContext;
 
 public class ServiceContext {
@@ -35,11 +35,11 @@ public class ServiceContext {
     private volatile LoggerPort loggerPort;
     private volatile FileSystemPluginAdapter pluginAdapter;
     private volatile HttpUpdateAdapter updateAdapter;
-
+    
     private volatile DatabaseConfig databaseConfig;
     private volatile IncidentRepository incidentRepository;
     private volatile AlertRepository alertRepository;
-
+    
     private volatile IncidentService incidentService;
     private volatile AlertService alertService;
 
@@ -47,11 +47,11 @@ public class ServiceContext {
         this.isHeadless = isHeadless;
         this.configProvider = new ConfigProvider();
     }
-
+    
     public void initializeDatabase() {
         new SchemaInitializer(getDatabaseConfig()).initialize();
     }
-
+    
     public IncidentService getIncidentService() {
         if (incidentService == null) {
             synchronized (this) {
@@ -79,10 +79,11 @@ public class ServiceContext {
             synchronized (this) {
                 if (pluginService == null) {
                     pluginService = new PluginService(
-                            getPluginAdapter(),
-                            getPluginContext(),
-                            getI18nPort(),
-                            getLoggerPort());
+                        getPluginAdapter(), 
+                        getPluginContext(), 
+                        getI18nPort(), 
+                        getLoggerPort()
+                    );
                 }
             }
         }
@@ -115,7 +116,9 @@ public class ServiceContext {
         if (pluginContext == null) {
             synchronized (this) {
                 if (pluginContext == null) {
-                    pluginContext = isHeadless ? new HeadlessPluginContext() : new DefaultPluginContext();
+                    pluginContext = isHeadless 
+                        ? new HeadlessPluginContext() 
+                        : new DefaultPluginContext();
                 }
             }
         }
@@ -126,7 +129,7 @@ public class ServiceContext {
         if (updateAdapter == null) {
             synchronized (this) {
                 if (updateAdapter == null) {
-                    updateAdapter = new HttpUpdateAdapter(configProvider, () -> true);
+                    updateAdapter = new HttpUpdateAdapter(configProvider, com.app.infrastructure.ui.AppState.getInstance()::isOnline);
                 }
             }
         }
@@ -160,9 +163,10 @@ public class ServiceContext {
             synchronized (this) {
                 if (pluginAdapter == null) {
                     pluginAdapter = new FileSystemPluginAdapter(
-                            configProvider.getPluginsPath(),
-                            configProvider.getPluginStatePath(),
-                            configProvider.getMaxPluginSizeBytes());
+                        configProvider.getPluginsPath(),
+                        configProvider.getPluginStatePath(),
+                        configProvider.getMaxPluginSizeBytes()
+                    );
                 }
             }
         }
