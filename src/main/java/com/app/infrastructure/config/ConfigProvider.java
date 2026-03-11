@@ -12,10 +12,10 @@ public class ConfigProvider {
             if (input != null) {
                 properties.load(input);
             } else {
-                com.app.infrastructure.util.DailyLogger.logWarn("ConfigProvider", "No application.properties found, utilizing defaults.");
+                com.app.infrastructure.adapter.logging.InfrastructureLogger.logWarn("ConfigProvider", "No application.properties found, utilizing defaults.");
             }
         } catch (IOException e) {
-            com.app.infrastructure.util.DailyLogger.logWarn("Config", "Config load failed, using defaults");
+            com.app.infrastructure.adapter.logging.InfrastructureLogger.logWarn("Config", "Config load failed, using defaults");
         }
     }
     public String getUpdateCheckUrl() {
@@ -48,3 +48,4 @@ public class ConfigProvider {
         return Long.parseLong(properties.getProperty("app.plugins.max.size", "10000000"));
     }
 }
+

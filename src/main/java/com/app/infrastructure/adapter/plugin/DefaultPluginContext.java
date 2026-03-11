@@ -1,5 +1,5 @@
 package com.app.infrastructure.adapter.plugin;
-import com.app.infrastructure.util.DailyLogger;
+import com.app.infrastructure.adapter.logging.InfrastructureLogger;
 import com.app.plugin.Plugin;
 import com.app.plugin.PluginContext;
 import javafx.application.Platform;
@@ -33,7 +33,7 @@ public class DefaultPluginContext implements PluginContext {
         try {
             Files.createDirectories(dir);
         } catch (Exception e) {
-            DailyLogger.logWarn("PluginContext", "Could not create plugin data dir: " + e.getMessage());
+            InfrastructureLogger.logWarn("PluginContext", "Could not create plugin data dir: " + e.getMessage());
         }
         return dir;
     }
@@ -104,22 +104,23 @@ public class DefaultPluginContext implements PluginContext {
                 try {
                     handler.accept(data);
                 } catch (Exception e) {
-                    DailyLogger.logError("PluginContext", "Error in event handler for: " + eventType, e);
+                    InfrastructureLogger.logError("PluginContext", "Error in event handler for: " + eventType, e);
                 }
             }
         }
     }
     @Override
     public void logInfo(String message) {
-        DailyLogger.logInfo("Plugin", message);
+        InfrastructureLogger.logInfo("Plugin", message);
     }
     @Override
     public void logWarning(String message) {
-        DailyLogger.logWarn("Plugin", message);
+        InfrastructureLogger.logWarn("Plugin", message);
     }
     @Override
     public void logError(String message, Throwable error) {
-        DailyLogger.logError("Plugin", message, error);
+        InfrastructureLogger.logError("Plugin", message, error);
     }
     public record PanelRegistration(String title, Pane panel) {}
 }
+

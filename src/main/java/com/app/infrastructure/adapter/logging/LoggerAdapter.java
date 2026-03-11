@@ -1,21 +1,22 @@
 package com.app.infrastructure.adapter.logging;
 import com.app.domain.port.out.LoggerPort;
-import com.app.infrastructure.util.DailyLogger;
+import com.app.infrastructure.adapter.logging.InfrastructureLogger;
 public class LoggerAdapter implements LoggerPort {
     @Override
     public void debug(String tag, String message) {
-        DailyLogger.logDebug(tag, message);
+        InfrastructureLogger.logDebug(tag, message);
     }
     @Override
     public void info(String tag, String message) {
-        DailyLogger.logInfo(tag, message);
+        InfrastructureLogger.logInfo(tag, message);
     }
     @Override
     public void warn(String tag, String message) {
-        DailyLogger.logWarn(tag, message);
+        InfrastructureLogger.logWarn(tag, message);
     }
     @Override
     public void error(String tag, String message, Throwable throwable) {
-        DailyLogger.logError(tag, message, throwable);
+        InfrastructureLogger.logError(tag, message, throwable);
     }
 }
+

@@ -21,8 +21,11 @@ public class PluginService implements PluginUseCase {
     private final Map<String, PluginMetadata> pluginsMap = new HashMap<>();
     private final Map<String, Plugin> loadedPlugins = new HashMap<>();
 
-    public PluginService(PluginRepository pluginRepository, PluginContext pluginContext,
-                         I18nPort i18n, LoggerPort logger) {
+    public PluginService(
+            PluginRepository pluginRepository,
+            PluginContext pluginContext,
+            I18nPort i18n,
+            LoggerPort logger) {
         this.pluginRepository = pluginRepository;
         this.pluginContext = pluginContext;
         this.i18n = i18n;
@@ -109,9 +112,9 @@ public class PluginService implements PluginUseCase {
             } catch (Exception e) {
                 logger.error("PluginService", "Error unloading plugin: " + pluginId, e);
             }
+            pluginRepository.unloadPlugin(pluginId);
         }
 
-        pluginRepository.unloadPlugin(pluginId);
         pluginsMap.put(pluginId, meta.withEnabled(false).withLoaded(false));
         saveCurrentStates();
     }
@@ -154,4 +157,3 @@ public class PluginService implements PluginUseCase {
         pluginRepository.savePluginStates(states);
     }
 }
-
