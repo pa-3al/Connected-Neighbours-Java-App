@@ -1,8 +1,4 @@
 package com.app.infrastructure.ui;
-import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -12,6 +8,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 public class AppState {
     private static final AppState instance = new AppState();
     private static final String CHECK_HOST = "www.google.com";
@@ -21,6 +25,7 @@ public class AppState {
     private final BooleanProperty online = new SimpleBooleanProperty(true);
     private final BooleanProperty manualMode = new SimpleBooleanProperty(false);
     private final BooleanProperty autoDetectionEnabled = new SimpleBooleanProperty(true);
+    private final StringProperty accessToken = new SimpleStringProperty("");
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "NetworkChecker");
         t.setDaemon(true);
@@ -121,5 +126,25 @@ public class AppState {
     }
     public void shutdown() {
         scheduler.shutdownNow();
+    }
+
+    public String getAccessToken() {
+        return accessToken.get();
+    }
+
+    public ReadOnlyStringProperty accessTokenProperty() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String token) {
+        accessToken.set(token == null ? "" : token);
+    }
+
+    public void clearSession() {
+        accessToken.set("");
+    }
+
+    public boolean isAuthenticated() {
+        return !accessToken.get().isBlank();
     }
 }

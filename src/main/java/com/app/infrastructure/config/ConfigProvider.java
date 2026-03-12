@@ -24,6 +24,39 @@ public class ConfigProvider {
     public int getUpdateTimeoutSeconds() {
         return Integer.parseInt(properties.getProperty("app.update.timeout", "30"));
     }
+
+    public String getAuthBaseUrl() {
+        return properties.getProperty("app.auth.baseUrl", "http://localhost:3000");
+    }
+
+    public String getAdminLoginPath() {
+        return properties.getProperty("app.auth.admin.loginPath", "/admin/auth/login");
+    }
+
+    public String getAdminLogin2FAPath() {
+        return properties.getProperty("app.auth.admin.login2faPath", "/admin/auth/login-2fa");
+    }
+
+    public String getAdminSsoAuthorizePath() {
+        return properties.getProperty("app.auth.admin.ssoAuthorizePath", "/admin/auth/sso/authorize");
+    }
+
+    public int getAuthTimeoutSeconds() {
+        return Integer.parseInt(properties.getProperty("app.auth.timeout", "15"));
+    }
+
+    public int getSsoTimeoutSeconds() {
+        return Integer.parseInt(properties.getProperty("app.auth.sso.timeout", "180"));
+    }
+
+    public boolean isAuthBypassEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("app.auth.bypass.enabled", "false"));
+    }
+
+    public String getAuthBypassToken() {
+        return properties.getProperty("app.auth.bypass.token", "local-dev-token");
+    }
+
     public String getPluginsPath() {
         return properties.getProperty("app.plugins.path", "plugins");
     }

@@ -1,26 +1,28 @@
 package com.app.infrastructure.di;
 
+import com.app.domain.port.out.AlertRepository;
 import com.app.domain.port.out.I18nPort;
+import com.app.domain.port.out.IncidentRepository;
 import com.app.domain.port.out.LoggerPort;
 import com.app.domain.port.out.QueryEngine;
+import com.app.domain.service.AlertService;
+import com.app.domain.service.AuthService;
+import com.app.domain.service.IncidentService;
 import com.app.domain.service.PluginService;
 import com.app.domain.service.UpdateService;
+import com.app.infrastructure.adapter.auth.HttpAdminAuthRepository;
 import com.app.infrastructure.adapter.i18n.I18nAdapter;
 import com.app.infrastructure.adapter.logging.LoggerAdapter;
+import com.app.infrastructure.adapter.persistence.DatabaseConfig;
+import com.app.infrastructure.adapter.persistence.JdbcAlertRepository;
+import com.app.infrastructure.adapter.persistence.JdbcIncidentRepository;
+import com.app.infrastructure.adapter.persistence.SchemaInitializer;
 import com.app.infrastructure.adapter.plugin.DefaultPluginContext;
 import com.app.infrastructure.adapter.plugin.FileSystemPluginAdapter;
 import com.app.infrastructure.adapter.plugin.HeadlessPluginContext;
 import com.app.infrastructure.adapter.query.JFlexQueryAdapter;
 import com.app.infrastructure.adapter.update.HttpUpdateAdapter;
 import com.app.infrastructure.config.ConfigProvider;
-import com.app.domain.port.out.IncidentRepository;
-import com.app.domain.port.out.AlertRepository;
-import com.app.domain.service.IncidentService;
-import com.app.domain.service.AlertService;
-import com.app.infrastructure.adapter.persistence.DatabaseConfig;
-import com.app.infrastructure.adapter.persistence.JdbcIncidentRepository;
-import com.app.infrastructure.adapter.persistence.JdbcAlertRepository;
-import com.app.infrastructure.adapter.persistence.SchemaInitializer;
 import com.app.plugin.PluginContext;
 
 public class ServiceContext {
@@ -35,6 +37,7 @@ public class ServiceContext {
     private volatile LoggerPort loggerPort;
     private volatile FileSystemPluginAdapter pluginAdapter;
     private volatile HttpUpdateAdapter updateAdapter;
+    private volatile HttpAdminAuthRepository authRepository;
     
     private volatile DatabaseConfig databaseConfig;
     private volatile IncidentRepository incidentRepository;
@@ -42,6 +45,7 @@ public class ServiceContext {
     
     private volatile IncidentService incidentService;
     private volatile AlertService alertService;
+    private volatile AuthService authService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -90,6 +94,25 @@ public class ServiceContext {
         return pluginService;
     }
 
+    public AuthService getAuthService() {
+        if (authService == null) {
+            synchronized (this) {
+                if (authService == null) {
+                    authService = new AuthService(getAuthRepository());
+                }
+            }
+        }
+        return authService;
+    }
+
+    public boolean isAuthBypassEnabled() {
+        return configProvider.isAuthBypassEnabled();
+    }
+
+    public String getAuthBypassToken() {
+        return configProvider.getAuthBypassToken();
+    }
+
     public UpdateService getUpdateService() {
         if (updateService == null) {
             synchronized (this) {
@@ -134,6 +157,17 @@ public class ServiceContext {
             }
         }
         return updateAdapter;
+    }
+
+    public HttpAdminAuthRepository getAuthRepository() {
+        if (authRepository == null) {
+            synchronized (this) {
+                if (authRepository == null) {
+                    authRepository = new HttpAdminAuthRepository(configProvider);
+                }
+            }
+        }
+        return authRepository;
     }
 
     private I18nPort getI18nPort() {

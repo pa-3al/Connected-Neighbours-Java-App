@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.app.infrastructure.ui.LoginController"
+            styleClass="content-pane">
+    <center>
+        <VBox alignment="CENTER" spacing="14" maxWidth="460" styleClass="card">
+            <padding>
+                <Insets top="28" right="28" bottom="28" left="28"/>
+            </padding>
+
+            <Label fx:id="titleLabel" text="%auth.login.title" styleClass="page-title"/>
+            <Label fx:id="subtitleLabel" text="%auth.login.subtitle" styleClass="label-secondary" wrapText="true"/>
+
+            <TextField fx:id="emailField" promptText="%auth.login.email"/>
+            <PasswordField fx:id="passwordField" promptText="%auth.login.password"/>
+
+            <HBox fx:id="twoFactorBox" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label fx:id="twoFactorLabel" text="%auth.login.code" minWidth="90"/>
+                <TextField fx:id="twoFactorField" promptText="123456"/>
+            </HBox>
+
+            <Button fx:id="loginButton" text="%auth.login.button" maxWidth="Infinity" styleClass="button-primary" onAction="#handleLogin"/>
+            <Button fx:id="ssoButton" text="%auth.login.sso" maxWidth="Infinity" styleClass="button-secondary" onAction="#handleSso"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ProgressIndicator fx:id="loadingIndicator" prefWidth="20" prefHeight="20" visible="false" managed="false"/>
+                <Label fx:id="statusLabel" styleClass="label-secondary" wrapText="true"/>
+            </HBox>
+
+            <Region minHeight="2"/>
+        </VBox>
+    </center>
+</BorderPane>

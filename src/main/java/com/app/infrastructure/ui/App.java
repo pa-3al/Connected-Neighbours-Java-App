@@ -1,16 +1,22 @@
 package com.app.infrastructure.ui;
+import java.io.IOException;
+import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.app.domain.service.AuthService;
 import com.app.domain.service.PluginService;
 import com.app.domain.service.ThemeService;
 import com.app.domain.service.UpdateService;
-import com.app.plugin.PluginContext;
 import com.app.infrastructure.adapter.theme.JavaFXThemeAdapter;
 import com.app.infrastructure.util.DailyLogger;
+import com.app.plugin.PluginContext;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
-import java.io.IOException;
 public class App extends Application {
     private static Scene scene;
     @Override
@@ -26,6 +32,7 @@ public class App extends Application {
             } catch (Exception e) {
                 DailyLogger.logError("App", "Database initialization failed", e);
             } 
+            AuthService authService = serviceContext.getAuthService();
             UpdateService updateService = serviceContext.getUpdateService();
             PluginService pluginService = serviceContext.getPluginService();
             DailyLogger.logInfo("App", "Services initialized successfully");
@@ -37,7 +44,19 @@ public class App extends Application {
             DailyLogger.logDebug("App", "Theme system initialized");
             DailyLogger.logDebug("App", "Loading FXML views...");
 
-            java.util.ResourceBundle bundle = com.app.infrastructure.i18n.I18nService.getInstance().getBundle();
+            ResourceBundle bundle = com.app.infrastructure.i18n.I18nService.getInstance().getBundle();
+
+            if (serviceContext.isAuthBypassEnabled()) {
+                String bypassToken = serviceContext.getAuthBypassToken();
+                AppState.getInstance().setAccessToken(bypassToken);
+                DailyLogger.logWarn("App", "Authentication bypass mode is enabled. Login dialog skipped.");
+            } else {
+                if (!showLoginDialog(stage, authService, bundle)) {
+                    DailyLogger.logWarn("App", "Authentication cancelled. Exiting application.");
+                    javafx.application.Platform.exit();
+                    return;
+                }
+            }
 
             FXMLLoader mainLoader = new FXMLLoader(App.class.getResource("/com/app/view/MainView.fxml"));
             mainLoader.setResources(bundle);
@@ -52,8 +71,8 @@ public class App extends Application {
                 }
             });
             pluginContext.subscribe("PLUGIN_PANEL_REMOVED", title -> {
-                if (title instanceof String) {
-                    mainController.removePluginPanel((String) title);
+                if (title instanceof String panelTitle) {
+                    mainController.removePluginPanel(panelTitle);
                 }
             });
 
@@ -100,7 +119,7 @@ public class App extends Application {
             String savedTheme = themeAdapter.loadPreference();
             themeAdapter.applyTheme(savedTheme != null ? savedTheme : "default-dark");
             DailyLogger.logInfo("App", "Theme applied: " + (savedTheme != null ? savedTheme : "default-dark"));
-            stage.setTitle("PA");
+            stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
             stage.setScene(scene);
             stage.setOnCloseRequest(e -> {
                 DailyLogger.getInstance().logAppShutdown();
@@ -108,17 +127,58 @@ public class App extends Application {
             });
             stage.show();
             DailyLogger.logInfo("App", "Application window displayed");
-        } catch (Throwable t) {
+        } catch (RuntimeException | IOException t) {
             DailyLogger.logError("App", "FATAL: Application startup failed", t);
             try (java.io.PrintWriter pw = new java.io.PrintWriter("startup_error.log")) {
                 t.printStackTrace(pw);
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (IOException ex) {
+                DailyLogger.logError("App", "Failed to write startup error log", ex);
             }
             throw new RuntimeException("Startup failed", t);
         }
     }
     public static void main(String[] args) {
         launch();
+    }
+
+    private boolean showLoginDialog(Stage owner, AuthService authService, ResourceBundle bundle) throws IOException {
+        AtomicBoolean authenticated = new AtomicBoolean(false);
+
+        Stage loginStage = new Stage();
+        loginStage.initModality(Modality.APPLICATION_MODAL);
+        loginStage.initOwner(owner);
+        loginStage.setResizable(false);
+        loginStage.setTitle("Connected-Neighbours-Java-App - Login");
+
+        FXMLLoader loginLoader = new FXMLLoader(App.class.getResource("/com/app/view/LoginView.fxml"));
+        loginLoader.setResources(bundle);
+        loginLoader.setControllerFactory(param -> {
+            if (param == LoginController.class) {
+                return new LoginController(authService, accessToken -> {
+                    AppState.getInstance().setAccessToken(accessToken);
+                    authenticated.set(true);
+                    loginStage.close();
+                });
+            }
+
+            try {
+                return param.getDeclaredConstructor().newInstance();
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Failed to create controller " + param.getName(), e);
+            }
+        });
+
+        Parent loginRoot = loginLoader.load();
+        Scene loginScene = new Scene(loginRoot, 560, 420);
+
+        JavaFXThemeAdapter loginThemeAdapter = new JavaFXThemeAdapter();
+        loginThemeAdapter.setScene(loginScene);
+        String savedTheme = loginThemeAdapter.loadPreference();
+        loginThemeAdapter.applyTheme(savedTheme != null ? savedTheme : "default-dark");
+
+        loginStage.setScene(loginScene);
+        loginStage.showAndWait();
+
+        return authenticated.get();
     }
 }
