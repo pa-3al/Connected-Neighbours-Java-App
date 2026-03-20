@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -14,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,16 +70,15 @@ public class HttpAdminAuthRepository implements AuthRepository {
         }
 
         CompletableFuture<String> tokenFuture = new CompletableFuture<>();
-        String expectedState = UUID.randomUUID().toString();
         int callbackPort = callbackServer.getAddress().getPort();
-        String redirectUri = "http://127.0.0.1:" + callbackPort + "/auth/callback";
 
-        callbackServer.createContext("/auth/callback", exchange -> handleSsoCallback(exchange, tokenFuture, expectedState));
+        callbackServer.createContext("/callback", exchange -> handleSsoCallback(exchange, tokenFuture));
+        callbackServer.createContext("/auth/callback", exchange -> handleSsoCallback(exchange, tokenFuture));
         callbackServer.start();
 
-        String authorizeUrl = buildUrl(configProvider.getAdminSsoAuthorizePath())
-            + "?redirect_uri=" + urlEncode(redirectUri)
-            + "&state=" + urlEncode(expectedState);
+        String authorizeBaseUrl = buildUrl(configProvider.getAdminSsoAuthorizePath());
+        String separator = authorizeBaseUrl.contains("?") ? "&" : "?";
+        String authorizeUrl = authorizeBaseUrl + separator + "localPort=" + callbackPort;
 
         try {
             Desktop.getDesktop().browse(URI.create(authorizeUrl));
@@ -146,22 +143,15 @@ public class HttpAdminAuthRepository implements AuthRepository {
         }
     }
 
-    private void handleSsoCallback(HttpExchange exchange, CompletableFuture<String> tokenFuture, String expectedState) throws IOException {
+    private void handleSsoCallback(HttpExchange exchange, CompletableFuture<String> tokenFuture) throws IOException {
         Map<String, String> params = parseQuery(exchange.getRequestURI().getRawQuery());
-        String state = params.get("state");
         String accessToken = params.get("accessToken");
         String error = params.get("error");
 
         int statusCode = 200;
         String message = "SSO login successful. You can close this tab.";
 
-        if (state == null || !expectedState.equals(state)) {
-            statusCode = 400;
-            message = "SSO failed: invalid state.";
-            if (!tokenFuture.isDone()) {
-                tokenFuture.completeExceptionally(new IllegalStateException("SSO failed: invalid state"));
-            }
-        } else if (error != null && !error.isBlank()) {
+        if (error != null && !error.isBlank()) {
             statusCode = 401;
             message = "SSO failed: " + error;
             if (!tokenFuture.isDone()) {
@@ -216,9 +206,5 @@ public class HttpAdminAuthRepository implements AuthRepository {
         String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         String normalizedPath = path.startsWith("/") ? path : "/" + path;
         return normalizedBase + normalizedPath;
-    }
-
-    private String urlEncode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

@@ -38,7 +38,7 @@ public class ConfigProvider {
     }
 
     public String getAdminSsoAuthorizePath() {
-        return properties.getProperty("app.auth.admin.ssoAuthorizePath", "/admin/auth/sso/authorize");
+        return properties.getProperty("app.auth.admin.ssoAuthorizePath", "/admin/auth/desktop/sso");
     }
 
     public int getAuthTimeoutSeconds() {
