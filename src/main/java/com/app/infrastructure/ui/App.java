@@ -1,4 +1,5 @@
 package com.app.infrastructure.ui;
+
 import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,8 +18,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
 public class App extends Application {
     private static Scene scene;
+
     @Override
     public void start(Stage stage) throws IOException {
         DailyLogger.getInstance().logAppStart();
@@ -31,7 +34,7 @@ public class App extends Application {
                 DailyLogger.logInfo("App", "Database initialized.");
             } catch (Exception e) {
                 DailyLogger.logError("App", "Database initialization failed", e);
-            } 
+            }
             AuthService authService = serviceContext.getAuthService();
             UpdateService updateService = serviceContext.getUpdateService();
             PluginService pluginService = serviceContext.getPluginService();
@@ -63,11 +66,11 @@ public class App extends Application {
             Parent root = mainLoader.load();
             MainController mainController = mainLoader.getController();
 
-            pluginContext.subscribe("PLUGIN_MENU_ADDED", item -> 
-                mainController.addPluginMenuItem((javafx.scene.control.MenuItem) item));
+            pluginContext.subscribe("PLUGIN_MENU_ADDED", item ->
+                    mainController.addPluginMenuItem((javafx.scene.control.MenuItem) item));
             pluginContext.subscribe("PLUGIN_PANEL_ADDED", data -> {
                 if (data instanceof com.app.infrastructure.adapter.plugin.DefaultPluginContext.PanelRegistration pr) {
-                     mainController.addPluginPanel(pr.title(), pr.panel());
+                    mainController.addPluginPanel(pr.title(), pr.panel());
                 }
             });
             pluginContext.subscribe("PLUGIN_PANEL_REMOVED", title -> {
@@ -85,25 +88,24 @@ public class App extends Application {
             settingsLoader.setResources(bundle);
             settingsLoader.setControllerFactory(param -> new SettingsController(updateService, themeAdapter));
             Parent settingsView = settingsLoader.load();
-            
+
             FXMLLoader themeLoader = new FXMLLoader(App.class.getResource("/com/app/view/ThemeView.fxml"));
             themeLoader.setResources(bundle);
             themeLoader.setControllerFactory(param -> new ThemeController(themeService));
             Parent themeView = themeLoader.load();
-            
+
             FXMLLoader pluginLoader = new FXMLLoader(App.class.getResource("/com/app/view/PluginView.fxml"));
             pluginLoader.setResources(bundle);
             pluginLoader.setControllerFactory(param -> new PluginController(pluginService));
             Parent pluginView = pluginLoader.load();
-            
+
             FXMLLoader queryLoader = new FXMLLoader(App.class.getResource("/com/app/view/QueryView.fxml"));
             queryLoader.setResources(bundle);
-
             Parent queryView = queryLoader.load();
 
             FXMLLoader homeLoader = new FXMLLoader(App.class.getResource("/com/app/view/HomeView.fxml"));
             homeLoader.setResources(bundle);
-            homeLoader.setControllerFactory(param -> new HomeController()); 
+            homeLoader.setControllerFactory(param -> new HomeController());
             Parent homeView = homeLoader.load();
 
             FXMLLoader incidentLoader = new FXMLLoader(App.class.getResource("/com/app/view/IncidentView.fxml"));
@@ -119,8 +121,10 @@ public class App extends Application {
             String savedTheme = themeAdapter.loadPreference();
             themeAdapter.applyTheme(savedTheme != null ? savedTheme : "default-dark");
             DailyLogger.logInfo("App", "Theme applied: " + (savedTheme != null ? savedTheme : "default-dark"));
+
             stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
             stage.setScene(scene);
+            stage.setMaximized(true);
             stage.setOnCloseRequest(e -> {
                 DailyLogger.getInstance().logAppShutdown();
                 AppState.getInstance().shutdown();
@@ -137,6 +141,7 @@ public class App extends Application {
             throw new RuntimeException("Startup failed", t);
         }
     }
+
     public static void main(String[] args) {
         launch();
     }
@@ -147,7 +152,7 @@ public class App extends Application {
         Stage loginStage = new Stage();
         loginStage.initModality(Modality.APPLICATION_MODAL);
         loginStage.initOwner(owner);
-        loginStage.setResizable(false);
+        loginStage.setResizable(true);
         loginStage.setTitle("Connected-Neighbours-Java-App - Login");
 
         FXMLLoader loginLoader = new FXMLLoader(App.class.getResource("/com/app/view/LoginView.fxml"));
@@ -169,7 +174,7 @@ public class App extends Application {
         });
 
         Parent loginRoot = loginLoader.load();
-        Scene loginScene = new Scene(loginRoot, 560, 420);
+        Scene loginScene = new Scene(loginRoot, 900, 700);
 
         JavaFXThemeAdapter loginThemeAdapter = new JavaFXThemeAdapter();
         loginThemeAdapter.setScene(loginScene);

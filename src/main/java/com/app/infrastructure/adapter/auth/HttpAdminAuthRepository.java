@@ -1,14 +1,10 @@
 package com.app.infrastructure.adapter.auth;
 
-import java.awt.Desktop;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
@@ -21,10 +17,16 @@ import java.util.concurrent.TimeoutException;
 import com.app.domain.model.AuthResult;
 import com.app.domain.port.out.AuthRepository;
 import com.app.infrastructure.config.ConfigProvider;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.Stage;
 
 public class HttpAdminAuthRepository implements AuthRepository {
     private final HttpClient httpClient;
@@ -34,34 +36,23 @@ public class HttpAdminAuthRepository implements AuthRepository {
     public HttpAdminAuthRepository(ConfigProvider configProvider) {
         this.configProvider = configProvider;
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
-            .build();
+                .connectTimeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
+                .build();
         this.objectMapper = new ObjectMapper();
     }
 
     @Override
     public AuthResult login(String email, String password) {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("email", email);
-        payload.put("password", password);
-        return authenticate(configProvider.getAdminLoginPath(), payload, "Invalid credentials");
+        throw new UnsupportedOperationException("Standard login is disabled.");
     }
 
     @Override
     public AuthResult loginWith2FA(String email, String password, String code) {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("email", email);
-        payload.put("password", password);
-        payload.put("code", code);
-        return authenticate(configProvider.getAdminLogin2FAPath(), payload, "Invalid 2FA code or credentials");
+        throw new UnsupportedOperationException("Standard login is disabled.");
     }
 
     @Override
     public String loginWithSso() {
-        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-            throw new IllegalStateException("Desktop browser is not supported on this platform");
-        }
-
         HttpServer callbackServer;
         try {
             callbackServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -80,8 +71,51 @@ public class HttpAdminAuthRepository implements AuthRepository {
         String separator = authorizeBaseUrl.contains("?") ? "&" : "?";
         String authorizeUrl = authorizeBaseUrl + separator + "localPort=" + callbackPort;
 
+        // Capture login stage dimensions on the JavaFX thread before going async
+        CompletableFuture<double[]> stageInfoFuture = new CompletableFuture<>();
+        Platform.runLater(() -> {
+            Stage loginStage = javafx.stage.Window.getWindows().stream()
+                    .filter(w -> w instanceof Stage && w.isShowing())
+                    .map(w -> (Stage) w)
+                    .findFirst()
+                    .orElse(null);
+            if (loginStage != null) {
+                stageInfoFuture.complete(new double[]{
+                        loginStage.getWidth(),
+                        loginStage.getHeight(),
+                        loginStage.getX(),
+                        loginStage.getY()
+                });
+            } else {
+                stageInfoFuture.complete(new double[]{800, 600, 0, 0});
+            }
+        });
+
+        double[] stageInfo;
         try {
-            Desktop.getDesktop().browse(URI.create(authorizeUrl));
+            stageInfo = stageInfoFuture.get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            stageInfo = new double[]{800, 600, 0, 0};
+        }
+        final double[] finalStageInfo = stageInfo;
+
+        Platform.runLater(() -> {
+            WebView webView = new WebView();
+            WebEngine webEngine = webView.getEngine();
+
+            Stage stage = new Stage();
+            stage.setTitle("SSO Login");
+            stage.setScene(new Scene(new BorderPane(webView), finalStageInfo[0], finalStageInfo[1]));
+            stage.setX(finalStageInfo[2]);
+            stage.setY(finalStageInfo[3]);
+            stage.show();
+
+            webEngine.load(authorizeUrl);
+
+            tokenFuture.whenComplete((token, ex) -> Platform.runLater(stage::close));
+        });
+
+        try {
             return tokenFuture.get(configProvider.getSsoTimeoutSeconds(), TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             throw new IllegalStateException("SSO timeout: no callback received", e);
@@ -91,8 +125,6 @@ public class HttpAdminAuthRepository implements AuthRepository {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             throw new RuntimeException("SSO login failed", cause == null ? e : cause);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to open browser for SSO", e);
         } catch (RuntimeException e) {
             throw e;
         } finally {
@@ -101,46 +133,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
     }
 
     private AuthResult authenticate(String path, Map<String, String> payload, String unauthorizedMessage) {
-        try {
-            String requestBody = objectMapper.writeValueAsString(payload);
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(buildUrl(path)))
-                .timeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-
-            if (response.statusCode() == 401) {
-                throw new IllegalArgumentException(unauthorizedMessage);
-            }
-
-            if (response.statusCode() != 200) {
-                throw new IllegalStateException("Authentication failed with status " + response.statusCode());
-            }
-
-            JsonNode root = objectMapper.readTree(response.body());
-
-            if (root.path("twoFactorRequired").asBoolean(false)) {
-                return AuthResult.requireTwoFactor();
-            }
-
-            String accessToken = root.path("accessToken").asText("");
-            if (accessToken.isBlank()) {
-                throw new IllegalStateException("Authentication response does not contain an access token");
-            }
-
-            return AuthResult.authenticated(accessToken);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            throw e;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Authentication request interrupted", e);
-        } catch (IOException e) {
-            throw new RuntimeException("Authentication request failed", e);
-        }
+        throw new UnsupportedOperationException("Direct authentication is disabled.");
     }
 
     private void handleSsoCallback(HttpExchange exchange, CompletableFuture<String> tokenFuture) throws IOException {
@@ -149,7 +142,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
         String error = params.get("error");
 
         int statusCode = 200;
-        String message = "SSO login successful. You can close this tab.";
+        String message = "Authentication complete. Returning to application...";
 
         if (error != null && !error.isBlank()) {
             statusCode = 401;
@@ -196,9 +189,9 @@ public class HttpAdminAuthRepository implements AuthRepository {
 
     private String htmlResponse(String message) {
         return "<html><body style='font-family:sans-serif;padding:24px'>"
-            + "<h2>Connected-Neighbours-Java-App</h2>"
-            + "<p>" + message + "</p>"
-            + "</body></html>";
+                + "<h2>Connected-Neighbours-Java-App</h2>"
+                + "<p>" + message + "</p>"
+                + "</body></html>";
     }
 
     private String buildUrl(String path) {
