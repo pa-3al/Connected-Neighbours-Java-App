@@ -5,8 +5,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .root {
-    -fx-font-family: 'Inter', 'SF Pro Display', 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', system-ui, sans-serif;
-    -fx-font-size: 13px;
+    -fx-font-family: 'Poppins', 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', system-ui, sans-serif;
+    -fx-font-size: 14px;
     -fx-base: #282a36;
     -fx-background: #282a36;
     -fx-control-inner-background: #44475a;

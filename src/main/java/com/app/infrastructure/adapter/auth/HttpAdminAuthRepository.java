@@ -1,6 +1,11 @@
 package com.app.infrastructure.adapter.auth;
 
-import java.awt.Desktop;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
+import javafx.scene.web.WebView;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -58,10 +63,6 @@ public class HttpAdminAuthRepository implements AuthRepository {
 
     @Override
     public String loginWithSso() {
-        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-            throw new IllegalStateException("Desktop browser is not supported on this platform");
-        }
-
         HttpServer callbackServer;
         try {
             callbackServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -81,7 +82,31 @@ public class HttpAdminAuthRepository implements AuthRepository {
         String authorizeUrl = authorizeBaseUrl + separator + "localPort=" + callbackPort;
 
         try {
-            Desktop.getDesktop().browse(URI.create(authorizeUrl));
+            Platform.runLater(() -> {
+                Stage ssoStage = new Stage();
+                ssoStage.initModality(Modality.APPLICATION_MODAL);
+                ssoStage.setTitle("SSO Login");
+                
+                WebView webView = new WebView();
+                webView.getEngine().load(authorizeUrl);
+                
+                StackPane root = new StackPane(webView);
+                Scene scene = new Scene(root, 600, 700);
+                ssoStage.setScene(scene);
+                
+                ssoStage.setOnCloseRequest(event -> {
+                    if (!tokenFuture.isDone()) {
+                        tokenFuture.completeExceptionally(new IllegalStateException("SSO login cancelled by user."));
+                    }
+                });
+                
+                tokenFuture.whenComplete((res, ex) -> {
+                    Platform.runLater(ssoStage::close);
+                });
+                
+                ssoStage.show();
+            });
+
             return tokenFuture.get(configProvider.getSsoTimeoutSeconds(), TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             throw new IllegalStateException("SSO timeout: no callback received", e);
@@ -91,8 +116,6 @@ public class HttpAdminAuthRepository implements AuthRepository {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             throw new RuntimeException("SSO login failed", cause == null ? e : cause);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to open browser for SSO", e);
         } catch (RuntimeException e) {
             throw e;
         } finally {
