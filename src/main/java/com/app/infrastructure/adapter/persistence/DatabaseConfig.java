@@ -1,5 +1,7 @@
 package com.app.infrastructure.adapter.persistence;
 
+import com.app.infrastructure.config.ConfigProvider;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -7,18 +9,26 @@ import java.io.File;
 
 public class DatabaseConfig {
 
-    private static final String DB_URL = "jdbc:h2:./data/neighborhood_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE";
-    private static final String DB_USER = "sananes";
-    private static final String DB_PASSWORD = "sananes";
+    private final String dbUrl;
+    private final String dbUser;
+    private final String dbPassword;
 
     public DatabaseConfig() {
         File dataDir = new File("./data");
         if (!dataDir.exists()) {
             dataDir.mkdirs();
         }
+
+        ConfigProvider configProvider = new ConfigProvider();
+        dbUrl = configProvider.getDatabaseUrl();
+        dbUser = configProvider.getDatabaseUser();
+        dbPassword = configProvider.getDatabasePassword();
     }
 
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+        if (dbUser == null || dbUser.isBlank()) {
+            return DriverManager.getConnection(dbUrl);
+        }
+        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
     }
 }

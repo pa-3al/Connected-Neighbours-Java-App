@@ -60,9 +60,20 @@ public class JdbcIncidentRepository implements IncidentRepository {
     @Override
     public Incident save(Incident incident) {
         String sql = """
-            MERGE INTO incidents (id, title, description, category, status, priority, reported_by, location, reported_at, resolved_at, last_modified, sync_status) 
-            KEY(id) 
+            INSERT INTO incidents (id, title, description, category, status, priority, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                description = excluded.description,
+                category = excluded.category,
+                status = excluded.status,
+                priority = excluded.priority,
+                reported_by = excluded.reported_by,
+                location = excluded.location,
+                reported_at = excluded.reported_at,
+                resolved_at = excluded.resolved_at,
+                last_modified = excluded.last_modified,
+                sync_status = excluded.sync_status
         """;
         
         try (Connection conn = databaseConfig.getConnection();

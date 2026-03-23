@@ -76,9 +76,18 @@ public class JdbcAlertRepository implements AlertRepository {
     @Override
     public Alert save(Alert alert) {
          String sql = """
-            MERGE INTO alerts (id, title, message, severity, created_at, expires_at, is_active, created_by, last_modified, sync_status) 
-            KEY(id) 
+            INSERT INTO alerts (id, title, message, severity, created_at, expires_at, is_active, created_by, last_modified, sync_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                message = excluded.message,
+                severity = excluded.severity,
+                created_at = excluded.created_at,
+                expires_at = excluded.expires_at,
+                is_active = excluded.is_active,
+                created_by = excluded.created_by,
+                last_modified = excluded.last_modified,
+                sync_status = excluded.sync_status
         """;
         
         try (Connection conn = databaseConfig.getConnection();

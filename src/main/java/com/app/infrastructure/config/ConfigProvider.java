@@ -49,6 +49,18 @@ public class ConfigProvider {
         return Integer.parseInt(properties.getProperty("app.auth.sso.timeout", "180"));
     }
 
+    public String getDatabaseUrl() {
+        return properties.getProperty("app.db.url", "jdbc:sqlite:./data/neighborhood.db");
+    }
+
+    public String getDatabaseUser() {
+        return properties.getProperty("app.db.user", "");
+    }
+
+    public String getDatabasePassword() {
+        return properties.getProperty("app.db.password", "");
+    }
+
     public boolean isAuthBypassEnabled() {
         return Boolean.parseBoolean(properties.getProperty("app.auth.bypass.enabled", "false"));
     }
