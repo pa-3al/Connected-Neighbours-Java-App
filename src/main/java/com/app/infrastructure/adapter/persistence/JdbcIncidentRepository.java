@@ -144,9 +144,9 @@ public class JdbcIncidentRepository implements IncidentRepository {
             parseEnum(IncidentPriority.class, rs.getString("priority")),
             rs.getString("reported_by"),
             rs.getString("location"),
-            toLocalDateTime(rs.getTimestamp("reported_at")),
-            toLocalDateTime(rs.getTimestamp("resolved_at")),
-            toLocalDateTime(rs.getTimestamp("last_modified")),
+            parseDbDate(rs.getString("reported_at")),
+            parseDbDate(rs.getString("resolved_at")),
+            parseDbDate(rs.getString("last_modified")),
             parseEnum(SyncStatus.class, rs.getString("sync_status"))
         );
     }
@@ -155,8 +155,23 @@ public class JdbcIncidentRepository implements IncidentRepository {
         return ldt == null ? null : Timestamp.valueOf(ldt);
     }
     
-    private LocalDateTime toLocalDateTime(Timestamp ts) {
-        return ts == null ? null : ts.toLocalDateTime();
+    private LocalDateTime parseDbDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            return null;
+        }
+        try {
+            if (dateStr.matches("^\\d+$")) {
+                return LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
+                    java.time.ZoneId.systemDefault()
+                );
+            }
+            String normalized = dateStr.replace(' ', 'T');
+            return LocalDateTime.parse(normalized);
+        } catch (Exception e) {
+            System.err.println("Error parsing date: " + dateStr + " - " + e.getMessage());
+            return null;
+        }
     }
     
     private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value) {

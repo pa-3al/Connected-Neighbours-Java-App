@@ -20,6 +20,7 @@
                 <Button text="%action.add" onAction="#handleAdd"/>
                 <Button text="%action.resolve" onAction="#handleResolve" fx:id="btnResolve"/>
                 <Button text="%action.delete" onAction="#handleDelete" fx:id="btnDelete"/>
+                <Button text="%action.sync" onAction="#handleSync" fx:id="btnSync"/>
                 <Button text="%action.refresh" onAction="#handleRefresh"/>
             </ToolBar>
         </VBox>

@@ -1,11 +1,5 @@
 package com.app.infrastructure.adapter.auth;
 
-import javafx.application.Platform;
-import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
-import javafx.scene.web.WebView;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -31,7 +25,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
+import javafx.scene.web.WebView;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
 public class HttpAdminAuthRepository implements AuthRepository {
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final ConfigProvider configProvider;
@@ -39,8 +41,8 @@ public class HttpAdminAuthRepository implements AuthRepository {
     public HttpAdminAuthRepository(ConfigProvider configProvider) {
         this.configProvider = configProvider;
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
-            .build();
+                .connectTimeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
+                .build();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -64,14 +66,20 @@ public class HttpAdminAuthRepository implements AuthRepository {
     @Override
     public String loginWithSso() {
         HttpServer callbackServer;
-        try {
-            callbackServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to initialize local SSO callback server", e);
+        int callbackPort = 8080;
+        while (true) {
+            try {
+                callbackServer = HttpServer.create(new InetSocketAddress("127.0.0.1", callbackPort), 0);
+                break;
+            } catch (IOException e) {
+                callbackPort++;
+                if (callbackPort > 65535) {
+                    throw new RuntimeException("", e);
+                }
+            }
         }
 
         CompletableFuture<String> tokenFuture = new CompletableFuture<>();
-        int callbackPort = callbackServer.getAddress().getPort();
 
         callbackServer.createContext("/callback", exchange -> handleSsoCallback(exchange, tokenFuture));
         callbackServer.createContext("/auth/callback", exchange -> handleSsoCallback(exchange, tokenFuture));
@@ -86,24 +94,24 @@ public class HttpAdminAuthRepository implements AuthRepository {
                 Stage ssoStage = new Stage();
                 ssoStage.initModality(Modality.APPLICATION_MODAL);
                 ssoStage.setTitle("SSO Login");
-                
+
                 WebView webView = new WebView();
                 webView.getEngine().load(authorizeUrl);
-                
+
                 StackPane root = new StackPane(webView);
                 Scene scene = new Scene(root, 600, 700);
                 ssoStage.setScene(scene);
-                
+
                 ssoStage.setOnCloseRequest(event -> {
                     if (!tokenFuture.isDone()) {
                         tokenFuture.completeExceptionally(new IllegalStateException("SSO login cancelled by user."));
                     }
                 });
-                
+
                 tokenFuture.whenComplete((res, ex) -> {
                     Platform.runLater(ssoStage::close);
                 });
-                
+
                 ssoStage.show();
             });
 
@@ -128,11 +136,11 @@ public class HttpAdminAuthRepository implements AuthRepository {
             String requestBody = objectMapper.writeValueAsString(payload);
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(buildUrl(path)))
-                .timeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                .build();
+                    .uri(URI.create(buildUrl(path)))
+                    .timeout(Duration.ofSeconds(configProvider.getAuthTimeoutSeconds()))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                    .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
@@ -219,9 +227,9 @@ public class HttpAdminAuthRepository implements AuthRepository {
 
     private String htmlResponse(String message) {
         return "<html><body style='font-family:sans-serif;padding:24px'>"
-            + "<h2>Connected-Neighbours-Java-App</h2>"
-            + "<p>" + message + "</p>"
-            + "</body></html>";
+                + "<h2>Connected-Neighbours-Java-App</h2>"
+                + "<p>" + message + "</p>"
+                + "</body></html>";
     }
 
     private String buildUrl(String path) {

@@ -1,0 +1,206 @@
+.conflict-dialog {
+    -fx-background-color: #0d1117;
+}
+
+.conflict-header {
+    -fx-background-color: #161b22;
+    -fx-border-color: #d29922;
+    -fx-border-width: 0 0 2 0;
+}
+
+.conflict-header-icon {
+    -fx-font-size: 20;
+    -fx-text-fill: #d29922;
+}
+
+.conflict-header-label {
+    -fx-font-size: 15;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e6edf3;
+}
+
+.conflict-toolbar {
+    -fx-background-color: #161b22;
+    -fx-border-color: #30363d;
+    -fx-border-width: 0 0 1 0;
+}
+
+.conflict-blocks {
+    -fx-background-color: #0d1117;
+}
+
+.conflict-scroll {
+    -fx-background: #0d1117;
+    -fx-background-color: #0d1117;
+}
+
+.btn-accept-all-local {
+    -fx-background-color: #1f6feb;
+    -fx-text-fill: white;
+    -fx-font-size: 12;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.btn-accept-all-local:hover {
+    -fx-background-color: #388bfd;
+}
+
+.btn-accept-all-server {
+    -fx-background-color: #238636;
+    -fx-text-fill: white;
+    -fx-font-size: 12;
+    -fx-padding: 6 14;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.btn-accept-all-server:hover {
+    -fx-background-color: #2ea043;
+}
+
+.btn-resolve {
+    -fx-background-color: #238636;
+    -fx-text-fill: white;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 6 16;
+    -fx-font-size: 13;
+    -fx-font-weight: bold;
+}
+
+.btn-resolve:hover {
+    -fx-background-color: #2ea043;
+}
+
+.btn-skip {
+    -fx-background-color: #21262d;
+    -fx-text-fill: #c9d1d9;
+    -fx-border-color: #30363d;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 6 16;
+    -fx-font-size: 13;
+}
+
+.btn-skip:hover {
+    -fx-background-color: #30363d;
+}
+
+.identical-row {
+    -fx-background-color: #0d1117;
+}
+
+.identical-check {
+    -fx-text-fill: #3fb950;
+    -fx-font-size: 13;
+}
+
+.identical-name {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 13;
+}
+
+.identical-dash {
+    -fx-text-fill: #484f58;
+}
+
+.identical-value {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 12;
+    -fx-font-family: 'Consolas';
+}
+
+.merge-block {
+    -fx-background-color: #161b22;
+    -fx-border-color: #30363d;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.merge-block-header {
+    -fx-background-color: #21262d;
+    -fx-background-radius: 6 6 0 0;
+}
+
+.merge-field-label {
+    -fx-text-fill: #e6edf3;
+    -fx-font-weight: bold;
+    -fx-font-size: 13;
+}
+
+.toggle-btn {
+    -fx-font-size: 11;
+    -fx-padding: 3 10;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.toggle-btn-local-selected {
+    -fx-background-color: #1f6feb;
+    -fx-text-fill: white;
+    -fx-font-size: 11;
+    -fx-padding: 3 10;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.toggle-btn-server-selected {
+    -fx-background-color: #238636;
+    -fx-text-fill: white;
+    -fx-font-size: 11;
+    -fx-padding: 3 10;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.toggle-btn-unselected {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 11;
+    -fx-padding: 3 10;
+    -fx-background-radius: 4;
+    -fx-border-color: #30363d;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.merge-section-local {
+    -fx-background-color: rgba(31, 111, 235, 0.1);
+    -fx-border-color: #1f6feb;
+    -fx-border-width: 0 0 0 3;
+}
+
+.merge-marker-local {
+    -fx-text-fill: #79c0ff;
+    -fx-font-size: 11;
+    -fx-font-family: 'Consolas';
+}
+
+.merge-separator {
+    -fx-text-fill: #484f58;
+    -fx-font-size: 11;
+    -fx-font-family: 'Consolas';
+}
+
+.merge-section-server {
+    -fx-background-color: rgba(46, 160, 67, 0.1);
+    -fx-border-color: #238636;
+    -fx-border-width: 0 0 0 3;
+}
+
+.merge-marker-server {
+    -fx-text-fill: #7ee787;
+    -fx-font-size: 11;
+    -fx-font-family: 'Consolas';
+}
+
+.merge-value {
+    -fx-text-fill: #c9d1d9;
+    -fx-font-size: 13;
+    -fx-font-family: 'Consolas';
+}
