@@ -83,7 +83,7 @@ public class TranslationEditor extends VBox {
 
         table = new TableView<>();
         table.setEditable(true);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         TableColumn<TranslationEntry, String> keyCol = new TableColumn<>("Clé");
@@ -124,7 +124,9 @@ public class TranslationEditor extends VBox {
         });
          valueCol.setEditable(true);
 
-        table.getColumns().addAll(keyCol, valueCol);
+        table.getColumns().clear();
+        table.getColumns().add(keyCol);
+        table.getColumns().add(valueCol);
 
         HBox bottomBar = new HBox(10);
         bottomBar.setAlignment(Pos.CENTER_LEFT);
@@ -218,7 +220,7 @@ public class TranslationEditor extends VBox {
         dialog.showAndWait().ifPresent(code -> {
             try {
                 I18nService.getInstance().createNewLocale(code);
-                Locale newLoc = new Locale(code);
+                Locale newLoc = Locale.forLanguageTag(code.replace('_', '-'));
                 if (!localeSelector.getItems().contains(newLoc)) {
                     localeSelector.getItems().add(newLoc);
                 }

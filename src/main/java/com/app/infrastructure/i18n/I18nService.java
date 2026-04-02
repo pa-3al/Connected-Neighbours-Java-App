@@ -4,16 +4,12 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import java.text.MessageFormat;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.concurrent.Callable;
 
 public class I18nService {
 
     private static final I18nService INSTANCE = new I18nService();
-    private final ObjectProperty<Locale> locale = new SimpleObjectProperty<>(Locale.FRENCH);
-    private final ObjectProperty<ResourceBundle> resources = new SimpleObjectProperty<>(); 
+    private final ObjectProperty<java.util.Locale> locale = new SimpleObjectProperty<>(java.util.Locale.FRENCH);
+    private final ObjectProperty<java.util.ResourceBundle> resources = new SimpleObjectProperty<>(); 
 
     private java.nio.file.Path resourcesRoot;
 
@@ -33,28 +29,28 @@ public class I18nService {
         this.resourcesRoot = root;
     }
 
-    private java.nio.file.Path resolvePath(Locale locale) {
+    private java.nio.file.Path resolvePath(java.util.Locale locale) {
         String filename = "messages_" + locale.getLanguage() + ".properties";
         return resourcesRoot.resolve(filename);
     }
 
-    private void loadBundle(Locale locale) {
-        ResourceBundle bundle;
+    private void loadBundle(java.util.Locale locale) {
+        java.util.ResourceBundle bundle;
         com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Loading bundle for locale: " + locale);
         try {
-            bundle = ResourceBundle.getBundle("com.app.i18n.messages", locale, new UTF8Control());
+            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale, new UTF8Control());
             com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Loaded bundle: " + bundle.getBaseBundleName() + " (Locale: " + bundle.getLocale() + ")");
         } catch (Exception e) {
             com.app.infrastructure.util.DailyLogger.logError("I18n", "Error loading resource bundle", e);
-            bundle = ResourceBundle.getBundle("com.app.i18n.messages", locale);
+            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale);
         }
         resources.set(bundle);
         com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Resources property updated.");
     }
     
-    private static class UTF8Control extends ResourceBundle.Control {
+    private static class UTF8Control extends java.util.ResourceBundle.Control {
         @Override
-        public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader, boolean reload)
+        public java.util.ResourceBundle newBundle(String baseName, java.util.Locale locale, String format, ClassLoader loader, boolean reload)
                 throws IllegalAccessException, InstantiationException, java.io.IOException {
             String bundleName = toBundleName(baseName, locale);
             String resourceName = toResourceName(bundleName, "properties");
@@ -71,7 +67,7 @@ public class I18nService {
     public String get(String key, Object... args) {
         try {
             String pattern = resources.get().getString(key);
-            return MessageFormat.format(pattern, args);
+            return java.text.MessageFormat.format(pattern, args);
         } catch (Exception e) {
             return "!" + key + "!";
         }
@@ -81,26 +77,26 @@ public class I18nService {
         return Bindings.createStringBinding(() -> get(key, args), resources);
     }
 
-    public StringBinding createStringBinding(Callable<String> func) {
+    public StringBinding createStringBinding(java.util.concurrent.Callable<String> func) {
         return Bindings.createStringBinding(func, resources);
     }
 
-    public ResourceBundle getBundle() {
+    public java.util.ResourceBundle getBundle() {
         return resources.get();
     }
 
-    public ObjectProperty<Locale> localeProperty() {
+    public ObjectProperty<java.util.Locale> localeProperty() {
         return locale;
     }
 
-    public void setLocale(Locale newLocale) {
+    public void setLocale(java.util.Locale newLocale) {
         locale.set(newLocale);
     }
 
     public void updateTranslation(String key, String value) {
     }
 
-    public void saveKeys(Locale locale, java.util.Map<String, String> keys) throws java.io.IOException {
+    public void saveKeys(java.util.Locale locale, java.util.Map<String, String> keys) throws java.io.IOException {
         java.util.Properties props = new java.util.Properties();
         props.putAll(keys);
 
@@ -115,7 +111,7 @@ public class I18nService {
     }
 
     public void createNewLocale(String languageCode) throws java.io.IOException {
-        Locale newLocale = new Locale(languageCode);
+        java.util.Locale newLocale = java.util.Locale.forLanguageTag(languageCode.replace('_', '-'));
         java.nio.file.Path path = resolvePath(newLocale);
         if (!java.nio.file.Files.exists(path)) {
             java.nio.file.Files.createFile(path);
@@ -127,10 +123,10 @@ public class I18nService {
         }
     }
 
-    public java.util.List<Locale> getAvailableLocales() {
-        java.util.List<Locale> locales = new java.util.ArrayList<>();
-        locales.add(Locale.FRENCH);
-        locales.add(Locale.ENGLISH);
+    public java.util.List<java.util.Locale> getAvailableLocales() {
+        java.util.List<java.util.Locale> locales = new java.util.ArrayList<>();
+        locales.add(java.util.Locale.FRENCH);
+        locales.add(java.util.Locale.ENGLISH);
 
         try {
             java.nio.file.Path current = java.nio.file.Paths.get(".").toAbsolutePath().normalize();
@@ -142,7 +138,7 @@ public class I18nService {
                           .forEach(p -> {
                               String filename = p.getFileName().toString();
                               String code = filename.replace("messages_", "").replace(".properties", "");
-                              Locale loc = new Locale(code);
+                              java.util.Locale loc = java.util.Locale.forLanguageTag(code.replace('_', '-'));
                               if (!locales.contains(loc)) {
                                   locales.add(loc);
                               }
@@ -155,8 +151,8 @@ public class I18nService {
         return locales;
     }
 
-    public void deleteLocale(Locale locale) throws java.io.IOException {
-        if (locale.equals(Locale.FRENCH) || locale.equals(Locale.ENGLISH)) {
+    public void deleteLocale(java.util.Locale locale) throws java.io.IOException {
+        if (locale.equals(java.util.Locale.FRENCH) || locale.equals(java.util.Locale.ENGLISH)) {
             throw new IllegalArgumentException("Cannot delete default languages (fr/en).");
         }
         
@@ -166,18 +162,18 @@ public class I18nService {
         }
         
         if (this.locale.get().equals(locale)) {
-            setLocale(Locale.FRENCH);
+            setLocale(java.util.Locale.FRENCH);
         }
     }
 
-    public void resetLocale(Locale locale) throws java.io.IOException {
-        if (!locale.equals(Locale.FRENCH) && !locale.equals(Locale.ENGLISH)) {
+    public void resetLocale(java.util.Locale locale) throws java.io.IOException {
+        if (!locale.equals(java.util.Locale.FRENCH) && !locale.equals(java.util.Locale.ENGLISH)) {
             throw new IllegalArgumentException("Reset only available for system locales.");
         }
         
         java.util.Properties props = new java.util.Properties();
         
-        if (locale.equals(Locale.FRENCH)) {
+        if (locale.equals(java.util.Locale.FRENCH)) {
             restoreFrenchDefaults(props);
         } else {
             props.put("home.title", "Toucan");

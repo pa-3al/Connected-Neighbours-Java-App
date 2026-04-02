@@ -1,17 +1,22 @@
 package com.app.infrastructure.adapter.persistence;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import com.app.domain.model.Incident;
 import com.app.domain.model.Incident.IncidentCategory;
 import com.app.domain.model.Incident.IncidentPriority;
 import com.app.domain.model.Incident.IncidentStatus;
 import com.app.domain.model.SyncStatus;
 import com.app.domain.port.out.IncidentRepository;
-
-import java.sql.*;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public class JdbcIncidentRepository implements IncidentRepository {
 
@@ -26,7 +31,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
         List<Incident> incidents = new ArrayList<>();
         String sql = """
             SELECT i.*, COALESCE(NULLIF(TRIM(u.firstname || ' ' || u.lastname), ''), i.reported_by) AS reported_by_display
-            FROM incidents i
+            FROM reports i
             LEFT JOIN users u ON i.reported_by_user_id = u.id
             ORDER BY i.reported_at DESC
             """;
@@ -39,7 +44,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
                 incidents.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error searching incidents", e);
+            throw new RuntimeException("Error searching reports", e);
         }
         return incidents;
     }
@@ -48,7 +53,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
     public Optional<Incident> findById(String id) {
         String sql = """
             SELECT i.*, COALESCE(NULLIF(TRIM(u.firstname || ' ' || u.lastname), ''), i.reported_by) AS reported_by_display
-            FROM incidents i
+            FROM reports i
             LEFT JOIN users u ON i.reported_by_user_id = u.id
             WHERE i.id = ?
             """;
@@ -62,7 +67,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding incident by id", e);
+            throw new RuntimeException("Error finding report by id", e);
         }
         return Optional.empty();
     }
@@ -70,7 +75,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
     @Override
     public Incident save(Incident incident) {
         String sql = """
-            INSERT INTO incidents (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
+            INSERT INTO reports (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
@@ -108,13 +113,13 @@ public class JdbcIncidentRepository implements IncidentRepository {
             return incident;
             
         } catch (SQLException e) {
-            throw new RuntimeException("Error saving incident", e);
+            throw new RuntimeException("Error saving report", e);
         }
     }
 
     @Override
     public void deleteById(String id) {
-        String sql = "DELETE FROM incidents WHERE id = ?";
+        String sql = "DELETE FROM reports WHERE id = ?";
         try (Connection conn = databaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
@@ -122,7 +127,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
             stmt.executeUpdate();
             
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting incident", e);
+            throw new RuntimeException("Error deleting report", e);
         }
     }
 
@@ -131,7 +136,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
         List<Incident> incidents = new ArrayList<>();
         String sql = """
             SELECT i.*, COALESCE(NULLIF(TRIM(u.firstname || ' ' || u.lastname), ''), i.reported_by) AS reported_by_display
-            FROM incidents i
+            FROM reports i
             LEFT JOIN users u ON i.reported_by_user_id = u.id
             WHERE i.status = ?
             ORDER BY i.reported_at DESC
@@ -147,7 +152,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error searching incidents by status", e);
+            throw new RuntimeException("Error searching reports by status", e);
         }
         return incidents;
     }

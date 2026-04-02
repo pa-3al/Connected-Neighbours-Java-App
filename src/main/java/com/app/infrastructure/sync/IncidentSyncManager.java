@@ -13,6 +13,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,9 @@ import com.app.infrastructure.config.ConfigProvider;
 import com.app.infrastructure.util.DailyLogger;
 
 public class IncidentSyncManager {
+
+    private static final String REPORTS_TABLE = "reports";
+    private static final String LEGACY_INCIDENTS_TABLE = "incidents";
 
     private final IncidentService incidentService;
     private final DatabaseConfig databaseConfig;
@@ -166,6 +171,7 @@ public class IncidentSyncManager {
                 if (areEquivalent(local, server)) {
                     Incident synced = withSyncMetadata(local, maxDate(local.lastModified(), server.lastModified()));
                     incidentService.updateIncident(synced);
+                    upsertIncident(serverConnection, synced);
                     unchanged++;
                     continue;
                 }
@@ -191,7 +197,7 @@ public class IncidentSyncManager {
                 unchanged
             );
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to synchronize incidents", e);
+            throw new RuntimeException("Failed to synchronize reports", e);
         }
     }
 
@@ -212,7 +218,7 @@ public class IncidentSyncManager {
         }
 
         String jdbcUrl = toJdbcPostgresUrl(rawUrl);
-        DailyLogger.logInfo("Sync", "Fetching incidents from direct DB: " + jdbcUrl.replaceAll("://([^:]+):([^@]+)@", "://$1:***@"));
+        DailyLogger.logInfo("Sync", "Fetching reports from direct DB: " + jdbcUrl.replaceAll("://([^:]+):([^@]+)@", "://$1:***@"));
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
             logDatabaseIdentity(conn);
@@ -230,13 +236,13 @@ public class IncidentSyncManager {
                 }
             }
 
-            DailyLogger.logInfo("Sync", "Fetched " + result.size() + " incidents from table " + table);
+            DailyLogger.logInfo("Sync", "Fetched " + result.size() + " reports from table " + table);
             return result;
         } catch (SQLException e) {
             Throwable cause = e.getCause();
             String root = cause == null ? "" : " cause=" + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage());
-            DailyLogger.logError("Sync", "Failed to fetch incidents from direct DB: sqlState=" + e.getSQLState() + " errorCode=" + e.getErrorCode() + " message=" + e.getMessage() + root, e);
-            throw new RuntimeException("Failed to fetch incidents from direct DB", e);
+            DailyLogger.logError("Sync", "Failed to fetch reports from direct DB: sqlState=" + e.getSQLState() + " errorCode=" + e.getErrorCode() + " message=" + e.getMessage() + root, e);
+            throw new RuntimeException("Failed to fetch reports from direct DB", e);
         }
     }
 
@@ -294,7 +300,7 @@ public class IncidentSyncManager {
         String configuredTable = configProvider.getSyncDatabaseTable();
         String[] targetNames = (configuredTable != null && !configuredTable.isBlank())
             ? new String[] {configuredTable}
-            : new String[] {"incidents", "incident_reports"};
+            : new String[] {"reports", "incidents", "incident_reports"};
         TableCandidate best = null;
 
         String sql = """
@@ -330,13 +336,13 @@ public class IncidentSyncManager {
         if (configuredTable == null || configuredTable.isBlank()) {
             DailyLogger.logWarn(
                 "Sync",
-                "No reports table found (incidents/incident_reports). Set app.sync.db.table in application.properties if you want another source table."
+                "No reports table found (reports/incidents/incident_reports). Set app.sync.db.table in application.properties if you want another source table."
             );
         }
 
         String available = String.join(", ", listBusinessTables(conn));
         throw new SQLException(
-            "No compatible table found (expected incidents or incident_reports"
+            "No compatible table found (expected reports, incidents or incident_reports"
                 + ((configuredTable != null && !configuredTable.isBlank()) ? ", or configured table '" + configuredTable + "'" : "")
                 + "). Available tables: "
                 + available
@@ -364,7 +370,7 @@ public class IncidentSyncManager {
             SELECT table_schema, table_name
             FROM information_schema.tables
             WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-              AND table_name IN ('users', 'moderators', 'admins', 'incidents', 'incident_reports')
+                            AND table_name IN ('users', 'moderators', 'admins', 'reports', 'incidents', 'incident_reports')
             ORDER BY table_schema, table_name
             """;
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
@@ -494,8 +500,26 @@ public class IncidentSyncManager {
         if (!hasColumn(meta, column)) {
             return null;
         }
+
+        Object raw = rs.getObject(column);
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof LocalDateTime ldt) {
+            return normalizeDateTime(ldt);
+        }
+        if (raw instanceof OffsetDateTime odt) {
+            return normalizeDateTime(odt.toLocalDateTime());
+        }
+        if (raw instanceof Timestamp ts) {
+            return normalizeDateTime(ts.toLocalDateTime());
+        }
+        if (raw instanceof String s) {
+            return normalizeDateTime(parseDbDate(s));
+        }
+
         Timestamp ts = rs.getTimestamp(column);
-        return ts == null ? null : ts.toLocalDateTime();
+        return ts == null ? null : normalizeDateTime(ts.toLocalDateTime());
     }
 
     private LocalDateTime getDateTimeWithFallback(
@@ -521,8 +545,8 @@ public class IncidentSyncManager {
 
     private void ensureIncidentsTable(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS incidents (
+            String createReportsSql = """
+                CREATE TABLE IF NOT EXISTS %s (
                     id VARCHAR(36) PRIMARY KEY,
                     title VARCHAR(255) NOT NULL,
                     description CLOB,
@@ -537,11 +561,39 @@ public class IncidentSyncManager {
                     last_modified TIMESTAMP,
                     sync_status VARCHAR(50)
                 )
-            """);
+            """.formatted(REPORTS_TABLE);
+            stmt.execute(createReportsSql);
 
-            if (!hasColumn(conn, "incidents", "reported_by_user_id")) {
-                stmt.execute("ALTER TABLE incidents ADD COLUMN reported_by_user_id VARCHAR(36)");
+            String createLegacyIncidentsSql = """
+                CREATE TABLE IF NOT EXISTS %s (
+                    id VARCHAR(36) PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description CLOB,
+                    category VARCHAR(50),
+                    status VARCHAR(50),
+                    priority VARCHAR(50),
+                    reported_by_user_id VARCHAR(36),
+                    reported_by VARCHAR(255),
+                    location VARCHAR(255),
+                    reported_at TIMESTAMP,
+                    resolved_at TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """.formatted(LEGACY_INCIDENTS_TABLE);
+            stmt.execute(createLegacyIncidentsSql);
+
+            if (!hasColumn(conn, REPORTS_TABLE, "reported_by_user_id")) {
+                stmt.execute("ALTER TABLE " + REPORTS_TABLE + " ADD COLUMN reported_by_user_id VARCHAR(36)");
             }
+
+            String migrateLegacySql = """
+                INSERT INTO %s (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
+                SELECT i.id, i.title, i.description, i.category, i.status, i.priority, i.reported_by_user_id, i.reported_by, i.location, i.reported_at, i.resolved_at, i.last_modified, i.sync_status
+                FROM %s i
+                WHERE NOT EXISTS (SELECT 1 FROM %s r WHERE r.id = i.id)
+            """.formatted(REPORTS_TABLE, LEGACY_INCIDENTS_TABLE, REPORTS_TABLE);
+            stmt.execute(migrateLegacySql);
         }
     }
 
@@ -583,7 +635,7 @@ public class IncidentSyncManager {
 
     private Map<String, Incident> loadServerIncidents(Connection conn) throws SQLException {
         Map<String, Incident> incidents = new HashMap<>();
-        String sql = "SELECT * FROM incidents";
+        String sql = "SELECT * FROM " + REPORTS_TABLE;
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -596,7 +648,7 @@ public class IncidentSyncManager {
 
     private void upsertIncident(Connection conn, Incident incident) throws SQLException {
         String sql = """
-            INSERT INTO incidents (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
+            INSERT INTO %s (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
@@ -611,7 +663,7 @@ public class IncidentSyncManager {
                 resolved_at = excluded.resolved_at,
                 last_modified = excluded.last_modified,
                 sync_status = excluded.sync_status
-        """;
+            """.formatted(REPORTS_TABLE);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, incident.id());
@@ -690,8 +742,18 @@ public class IncidentSyncManager {
             && Objects.equals(first.reportedByUserId(), second.reportedByUserId())
             && Objects.equals(first.reportedBy(), second.reportedBy())
             && Objects.equals(first.location(), second.location())
-            && Objects.equals(first.reportedAt(), second.reportedAt())
-            && Objects.equals(first.resolvedAt(), second.resolvedAt());
+            && areSameDateTime(first.reportedAt(), second.reportedAt())
+            && areSameDateTime(first.resolvedAt(), second.resolvedAt());
+    }
+
+    private LocalDateTime normalizeDateTime(LocalDateTime value) {
+        return value == null ? null : value.truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private boolean areSameDateTime(LocalDateTime first, LocalDateTime second) {
+        LocalDateTime normalizedFirst = normalizeDateTime(first);
+        LocalDateTime normalizedSecond = normalizeDateTime(second);
+        return Objects.equals(normalizedFirst, normalizedSecond);
     }
 
     private void syncUsers(Connection localConnection, Connection serverConnection) throws SQLException {
@@ -857,13 +919,13 @@ public class IncidentSyncManager {
         }
         try {
             if (dateStr.matches("^\\d+$")) {
-                return LocalDateTime.ofInstant(
+                return normalizeDateTime(LocalDateTime.ofInstant(
                     java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
                     java.time.ZoneId.systemDefault()
-                );
+                ));
             }
             String normalized = dateStr.replace(' ', 'T');
-            return LocalDateTime.parse(normalized);
+            return normalizeDateTime(LocalDateTime.parse(normalized));
         } catch (NumberFormatException | java.time.format.DateTimeParseException e) {
             System.err.println("Error parsing date in sync: " + dateStr + " - " + e.getMessage());
             return null;

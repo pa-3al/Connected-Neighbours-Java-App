@@ -136,6 +136,9 @@
                 <groupId>de.jflex</groupId>
                 <artifactId>jflex-maven-plugin</artifactId>
                 <version>1.9.1</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/generated-sources/cup</outputDirectory>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

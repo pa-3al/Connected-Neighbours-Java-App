@@ -47,7 +47,6 @@ public class CanvasController {
     private static final double MAX_SCALE = 20.0;
     
     private double lastMouseX, lastMouseY;
-    private double lastWorldX, lastWorldY;
     private boolean isSpaceDown = false;
     private boolean isEraser = false;
 
@@ -213,8 +212,6 @@ public class CanvasController {
         lastMouseX = e.getX();
         lastMouseY = e.getY();
         Point2D p = zoomGroup.parentToLocal(e.getX(), e.getY());
-        lastWorldX = p.getX();
-        lastWorldY = p.getY();
         
         if (e.getButton() == MouseButton.PRIMARY && !isSpaceDown) {
             handleDrawStart(p);
@@ -233,8 +230,6 @@ public class CanvasController {
 
              Point2D p = zoomGroup.parentToLocal(e.getX(), e.getY());
              handleDrawMove(p);
-             lastWorldX = p.getX();
-             lastWorldY = p.getY();
          }
     }
 
