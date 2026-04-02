@@ -1,14 +1,14 @@
 package com.app.plugin.impl;
 
+import java.util.Set;
 import com.app.infrastructure.ui.App;
 import com.app.plugin.Plugin;
 import com.app.plugin.PluginContext;
+
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.control.Slider;
-import javafx.scene.layout.Pane;
-import java.util.Set;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.layout.Pane;
 
 public class DrawingPlugin implements Plugin {
 

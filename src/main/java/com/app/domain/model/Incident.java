@@ -9,6 +9,7 @@ public record Incident(
     IncidentCategory category,
     IncidentStatus status,
     IncidentPriority priority,
+    String reportedByUserId,
     String reportedBy,
     String location,
     LocalDateTime reportedAt,
@@ -32,12 +33,12 @@ public record Incident(
         LocalDateTime resolved = (newStatus == IncidentStatus.RESOLVED || newStatus == IncidentStatus.CLOSED)
             ? LocalDateTime.now() : this.resolvedAt;
         return new Incident(id, title, description, category, newStatus, priority,
-            reportedBy, location, reportedAt, resolved, LocalDateTime.now(), SyncStatus.PENDING);
+            reportedByUserId, reportedBy, location, reportedAt, resolved, LocalDateTime.now(), SyncStatus.PENDING);
     }
 
     public Incident withSyncStatus(SyncStatus newSyncStatus) {
         return new Incident(id, title, description, category, status, priority,
-            reportedBy, location, reportedAt, resolvedAt, lastModified, newSyncStatus);
+            reportedByUserId, reportedBy, location, reportedAt, resolvedAt, lastModified, newSyncStatus);
     }
 
     public static Incident create(String id, String title, String description,
@@ -45,6 +46,6 @@ public record Incident(
             String reportedBy, String location) {
         LocalDateTime now = LocalDateTime.now();
         return new Incident(id, title, description, category, IncidentStatus.OPEN,
-            priority, reportedBy, location, now, null, now, SyncStatus.LOCAL_ONLY);
+            priority, null, reportedBy, location, now, null, now, SyncStatus.LOCAL_ONLY);
     }
 }

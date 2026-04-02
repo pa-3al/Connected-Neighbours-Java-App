@@ -116,6 +116,7 @@ public class ConflictResolutionDialog {
                 pickField(catRes, local.category(), server.category()),
                 pickField(statusRes, local.status(), server.status()),
                 pickField(prioRes, local.priority(), server.priority()),
+                pickField(reporterRes, local.reportedByUserId(), server.reportedByUserId()),
                 pickField(reporterRes, local.reportedBy(), server.reportedBy()),
                 pickField(locRes, local.location(), server.location()),
                 pickField(reportedAtRes, local.reportedAt(), server.reportedAt()),
@@ -234,6 +235,7 @@ public class ConflictResolutionDialog {
         if (localMod == null && serverMod != null) return SourceChoice.SERVER;
         if (serverMod == null && localMod != null) return SourceChoice.LOCAL;
         if (localMod == null) return SourceChoice.LOCAL;
+        if (serverMod == null) return SourceChoice.LOCAL;
         return serverMod.isAfter(localMod) ? SourceChoice.SERVER : SourceChoice.LOCAL;
     }
 

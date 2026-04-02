@@ -1,5 +1,8 @@
 package com.app.infrastructure.ui;
 
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+import java.util.UUID;
 import com.app.domain.model.Incident;
 import com.app.domain.model.Incident.IncidentCategory;
 import com.app.domain.model.Incident.IncidentPriority;
@@ -7,16 +10,22 @@ import com.app.domain.service.IncidentService;
 import com.app.infrastructure.i18n.I18nService;
 import com.app.infrastructure.sync.IncidentSyncManager;
 import com.app.infrastructure.sync.IncidentSyncReport;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-import javafx.stage.FileChooser;
-import java.io.File;
-import java.time.format.DateTimeFormatter;
-import java.util.Optional;
-import java.util.UUID;
 
 public class IncidentController {
 
@@ -86,22 +95,8 @@ public class IncidentController {
 
     @FXML
     private void handleSync() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle(i18n.get("incident.sync.select_server_db"));
-        fileChooser.getExtensionFilters().add(
-            new FileChooser.ExtensionFilter("SQLite (*.db, *.sqlite, *.sqlite3)", "*.db", "*.sqlite", "*.sqlite3")
-        );
-
-        File dataDir = new File("data");
-        if (dataDir.exists() && dataDir.isDirectory()) {
-            fileChooser.setInitialDirectory(dataDir);
-        }
-
-        File selectedFile = fileChooser.showOpenDialog(incidentTable.getScene().getWindow());
-        if (selectedFile == null) return;
-
         try {
-            IncidentSyncReport report = syncManager.sync(selectedFile.toPath(), conflictDialog::resolve);
+            IncidentSyncReport report = syncManager.syncWithBackend(conflictDialog::resolve);
             loadData();
             showInfo(
                 i18n.get("incident.sync.report.title"),
