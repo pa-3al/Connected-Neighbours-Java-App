@@ -1,16 +1,16 @@
 package com.app.infrastructure.i18n;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class I18nServiceTest {
 
@@ -44,7 +44,7 @@ class I18nServiceTest {
         Path expectedFile = tempDir.resolve("messages_it.properties");
         assertTrue(Files.exists(expectedFile));
         
-        service.deleteLocale(new Locale(lang));
+        service.deleteLocale(Locale.forLanguageTag(lang));
         assertFalse(Files.exists(expectedFile), "Properties file should be deleted");
     }
 

@@ -1,15 +1,19 @@
 package com.app.infrastructure.ui;
 
+import com.app.infrastructure.util.ConnectivityUtil;
+import com.app.infrastructure.util.DailyLogger;
+
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.Node;
-import com.app.infrastructure.util.DailyLogger;
-import com.app.infrastructure.util.ConnectivityUtil;
 
 public class MainController {
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();

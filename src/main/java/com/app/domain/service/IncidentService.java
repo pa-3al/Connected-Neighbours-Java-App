@@ -5,7 +5,6 @@ import com.app.domain.model.Incident.IncidentStatus;
 import com.app.domain.port.in.IncidentUseCase;
 import com.app.domain.port.out.IncidentRepository;
 import java.util.List;
-import java.util.UUID;
 
 public class IncidentService implements IncidentUseCase {
 

@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
 
 public class DbConflictGenerator {
 
@@ -17,10 +16,10 @@ public class DbConflictGenerator {
         String serverDb = "jdbc:sqlite:" + dataDir + "/server.db";
 
         System.out.println("Generating Local DB: " + localDb);
-        setupDb(localDb, "Conflict incident", "Description locale", "2026-03-31 10:00:00");
+        setupDb(localDb, "Conflict report", "Description locale", "2026-03-31 10:00:00");
 
         System.out.println("Generating Server DB: " + serverDb);
-        setupDb(serverDb, "Conflit sur Incident", "Description serveur", "2026-03-31 10:05:00");
+        setupDb(serverDb, "Conflit sur Report", "Description serveur", "2026-03-31 10:05:00");
 
         System.out.println("Done. You can now sync neighborhood.db with server.db to see the conflict.");
     }
@@ -29,7 +28,7 @@ public class DbConflictGenerator {
         try (Connection conn = DriverManager.getConnection(url)) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("""
-                    CREATE TABLE IF NOT EXISTS incidents (
+                    CREATE TABLE IF NOT EXISTS reports (
                         id VARCHAR(36) PRIMARY KEY,
                         title VARCHAR(255) NOT NULL,
                         description CLOB,
@@ -44,16 +43,16 @@ public class DbConflictGenerator {
                         sync_status VARCHAR(50)
                     )
                 """);
-                stmt.execute("DELETE FROM incidents WHERE id = 'incident-conflit-123'");
+                stmt.execute("DELETE FROM reports WHERE id = 'report-conflit-123'");
             }
 
             String sql = """
-                INSERT INTO incidents (id, title, description, category, status, priority, reported_by, location, reported_at, last_modified, sync_status)
+                INSERT INTO reports (id, title, description, category, status, priority, reported_by, location, reported_at, last_modified, sync_status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, "incident-conflit-123");
+                pstmt.setString(1, "report-conflit-123");
                 pstmt.setString(2, title);
                 pstmt.setString(3, description);
                 pstmt.setString(4, "SECURITY");

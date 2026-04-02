@@ -1,6 +1,7 @@
 package com.app.infrastructure.adapter.persistence;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -15,16 +16,30 @@ public class SchemaInitializer {
     public void initialize() {
         try (Connection conn = databaseConfig.getConnection();
              Statement stmt = conn.createStatement()) {
-            
-            // Incident
+
             stmt.execute("""
-                CREATE TABLE IF NOT EXISTS incidents (
+                CREATE TABLE IF NOT EXISTS users (
+                    id VARCHAR(36) PRIMARY KEY,
+                    email VARCHAR(255),
+                    firstname VARCHAR(255),
+                    lastname VARCHAR(255),
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+            
+            // Report/Incident
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS reports (
                     id VARCHAR(36) PRIMARY KEY,
                     title VARCHAR(255) NOT NULL,
                     description CLOB,
                     category VARCHAR(50),
                     status VARCHAR(50),
                     priority VARCHAR(50),
+                    reported_by_user_id VARCHAR(36),
                     reported_by VARCHAR(255),
                     location VARCHAR(255),
                     reported_at TIMESTAMP,
@@ -33,6 +48,35 @@ public class SchemaInitializer {
                     sync_status VARCHAR(50)
                 )
             """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS incidents (
+                    id VARCHAR(36) PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description CLOB,
+                    category VARCHAR(50),
+                    status VARCHAR(50),
+                    priority VARCHAR(50),
+                    reported_by_user_id VARCHAR(36),
+                    reported_by VARCHAR(255),
+                    location VARCHAR(255),
+                    reported_at TIMESTAMP,
+                    resolved_at TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                INSERT INTO reports (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
+                SELECT i.id, i.title, i.description, i.category, i.status, i.priority, i.reported_by_user_id, i.reported_by, i.location, i.reported_at, i.resolved_at, i.last_modified, i.sync_status
+                FROM incidents i
+                WHERE NOT EXISTS (SELECT 1 FROM reports r WHERE r.id = i.id)
+            """);
+
+            addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
+            addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
+            addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
 
             // Alerte
             stmt.execute("""
@@ -53,5 +97,28 @@ public class SchemaInitializer {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize database schema", e);
         }
+    }
+
+    private void addColumnIfMissing(Connection conn, String tableName, String columnName, String definition)
+            throws SQLException {
+        if (hasColumn(conn, tableName, columnName)) {
+            return;
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + definition);
+        }
+    }
+
+    private boolean hasColumn(Connection conn, String tableName, String columnName) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (rs.next()) {
+                if (columnName.equalsIgnoreCase(rs.getString("name"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -1,22 +1,31 @@
 package com.app.plugin.i18n;
 
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import com.app.infrastructure.i18n.I18nService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 
 public class TranslationEditor extends VBox {
 
@@ -74,7 +83,7 @@ public class TranslationEditor extends VBox {
 
         table = new TableView<>();
         table.setEditable(true);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
 
         TableColumn<TranslationEntry, String> keyCol = new TableColumn<>("Clé");
@@ -115,7 +124,9 @@ public class TranslationEditor extends VBox {
         });
          valueCol.setEditable(true);
 
-        table.getColumns().addAll(keyCol, valueCol);
+        table.getColumns().clear();
+        table.getColumns().add(keyCol);
+        table.getColumns().add(valueCol);
 
         HBox bottomBar = new HBox(10);
         bottomBar.setAlignment(Pos.CENTER_LEFT);
@@ -209,7 +220,7 @@ public class TranslationEditor extends VBox {
         dialog.showAndWait().ifPresent(code -> {
             try {
                 I18nService.getInstance().createNewLocale(code);
-                Locale newLoc = new Locale(code);
+                Locale newLoc = Locale.forLanguageTag(code.replace('_', '-'));
                 if (!localeSelector.getItems().contains(newLoc)) {
                     localeSelector.getItems().add(newLoc);
                 }

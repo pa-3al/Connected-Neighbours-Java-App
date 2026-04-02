@@ -25,8 +25,24 @@ public class ConfigProvider {
         return Integer.parseInt(properties.getProperty("app.update.timeout", "30"));
     }
 
+    public String getSyncUrl() {
+        return properties.getProperty("app.sync.url", "https://test-backend.remythibaut.fr/sync");
+    }
+
+    public String getSyncDatabaseUrl() {
+        return properties.getProperty("app.sync.db.url", "");
+    }
+
+    public String getSyncDatabaseTable() {
+        return properties.getProperty("app.sync.db.table", "").trim();
+    }
+
+    public int getSyncTimeoutSeconds() {
+        return Integer.parseInt(properties.getProperty("app.sync.timeout", "20"));
+    }
+
     public String getAuthBaseUrl() {
-        return properties.getProperty("app.auth.baseUrl", "http://localhost:3000");
+        return properties.getProperty("app.auth.baseUrl", "https://test-backend.remythibaut.fr");
     }
 
     public String getAdminLoginPath() {
