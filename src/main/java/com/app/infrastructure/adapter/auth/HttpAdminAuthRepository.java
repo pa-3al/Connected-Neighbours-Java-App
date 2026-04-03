@@ -177,6 +177,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
     private void handleSsoCallback(HttpExchange exchange, CompletableFuture<String> tokenFuture) throws IOException {
         Map<String, String> params = parseQuery(exchange.getRequestURI().getRawQuery());
         String accessToken = params.get("accessToken");
+        String refreshToken = params.get("refreshToken");
         String error = params.get("error");
 
         int statusCode = 200;
@@ -195,7 +196,8 @@ public class HttpAdminAuthRepository implements AuthRepository {
                 tokenFuture.completeExceptionally(new IllegalStateException("SSO failed: missing access token"));
             }
         } else if (!tokenFuture.isDone()) {
-            tokenFuture.complete(accessToken);
+            String combinedTokens = accessToken + ":" + (refreshToken != null ? refreshToken : "");
+            tokenFuture.complete(combinedTokens);
         }
 
         byte[] body = htmlResponse(message).getBytes(StandardCharsets.UTF_8);
