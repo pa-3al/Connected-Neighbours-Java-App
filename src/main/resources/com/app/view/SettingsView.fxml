@@ -2,52 +2,98 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
-      fx:controller="com.app.infrastructure.ui.SettingsController"
-      spacing="15" styleClass="settings-view">
-    <padding><Insets topRightBottomLeft="20"/></padding>
-    <HBox alignment="CENTER_LEFT" spacing="15">
-        <Label fx:id="settingsTitleLabel" text="%settings.title" styleClass="section-title"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <ToggleButton fx:id="onlineToggle" text="%settings.online.active" styleClass="online-toggle" minWidth="120"/>
-    </HBox>
 
-    <VBox spacing="10" styleClass="card">
-        <Label fx:id="generalLabel" text="%settings.general" styleClass="card-title"/>
-        <HBox alignment="CENTER_LEFT" spacing="20">
-            <Label fx:id="languageLabel" text="%settings.language" styleClass="label-form"/>
-            <ComboBox fx:id="languageCombo" prefWidth="200"/>
-        </HBox>
-    </VBox>
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.app.infrastructure.ui.SettingsController"
+            fitToWidth="true"
+            hbarPolicy="NEVER">
 
-    <VBox spacing="10" styleClass="card">
-        <Label fx:id="updatesTitleLabel" text="%settings.updates.title" styleClass="card-title"/>
-        <HBox alignment="CENTER_LEFT" spacing="10">
-            <Label fx:id="versionLabel" text="Version actuelle : 1.0.0"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Label fx:id="statusLabel" text="" styleClass="status-label"/>
-        </HBox>
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <Button fx:id="checkButton" text="🔍 Vérifier les mises à jour" onAction="#handleCheckUpdates" styleClass="primary-button"/>
-            <Button fx:id="downloadButton" text="⬇️ Télécharger" onAction="#handleDownloadUpdate" visible="false" styleClass="success-button"/>
-            <Button fx:id="installButton" text="🚀 Installer et redémarrer" onAction="#handleInstallUpdate" visible="false" styleClass="warning-button"/>
-        </HBox>
-        <HBox fx:id="progressContainer" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
-            <Label fx:id="progressLabel" text="Progression :"/>
-            <ProgressBar fx:id="downloadProgressBar" prefWidth="300" progress="0"/>
-        </HBox>
-    </VBox>
-    <VBox spacing="5" VBox.vgrow="ALWAYS" styleClass="card">
-        <Label fx:id="updateLogTitleLabel" text="%settings.updates.log.title" styleClass="card-title"/>
-        <TextArea fx:id="updateLogArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" 
-                  promptText="Les informations de mise à jour apparaîtront ici..."
-                  styleClass="log-area"/>
-    </VBox>
+    <content>
+        <VBox spacing="15" styleClass="settings-view">
 
-    <VBox spacing="10" styleClass="card" style="-fx-border-color: #e74c3c; -fx-border-width: 1; -fx-border-radius: 8;">
-        <Label fx:id="uninstallTitleLabel" text="%settings.uninstall.title" styleClass="card-title" style="-fx-text-fill: #e74c3c;"/>
-        <Label fx:id="uninstallDescLabel" text="%settings.uninstall.description" wrapText="true" style="-fx-opacity: 0.8;"/>
-        <Button fx:id="uninstallButton" text="%settings.uninstall.button" onAction="#handleUninstall"
-                style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 20;"/>
-    </VBox>
-</VBox>
+            <padding>
+                <Insets topRightBottomLeft="20"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label fx:id="settingsTitleLabel" text="%settings.title" styleClass="section-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <ToggleButton fx:id="onlineToggle" text="%settings.online.active" styleClass="online-toggle" minWidth="120"/>
+            </HBox>
+
+            <VBox spacing="10" styleClass="card">
+                <Label fx:id="generalLabel" text="%settings.general" styleClass="card-title"/>
+                <HBox alignment="CENTER_LEFT" spacing="20">
+                    <Label fx:id="languageLabel" text="%settings.language" styleClass="label-form"/>
+                    <ComboBox fx:id="languageCombo" prefWidth="200"/>
+                </HBox>
+            </VBox>
+
+            <VBox spacing="10" styleClass="card">
+                <Label fx:id="dbConfigTitleLabel" text="%settings.db.title" styleClass="card-title"/>
+                <HBox alignment="CENTER_LEFT" spacing="20">
+                    <Label fx:id="dbUrlLabel" text="%settings.db.url" styleClass="label-form" prefWidth="150"/>
+                    <TextField fx:id="dbUrlField" HBox.hgrow="ALWAYS"/>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="20">
+                    <Label fx:id="dbUserLabel" text="%settings.db.user" styleClass="label-form" prefWidth="150"/>
+                    <TextField fx:id="dbUserField" HBox.hgrow="ALWAYS"/>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="20">
+                    <Label fx:id="dbPasswordLabel" text="%settings.db.password" styleClass="label-form" prefWidth="150"/>
+                    <PasswordField fx:id="dbPasswordField" HBox.hgrow="ALWAYS"/>
+                </HBox>
+                <HBox alignment="CENTER_RIGHT">
+                    <Button fx:id="saveDbButton" text="💾 Enregistrer" onAction="#handleSaveDbConfig" styleClass="primary-button"/>
+                </HBox>
+            </VBox>
+
+            <VBox spacing="10" styleClass="card">
+                <Label fx:id="updatesTitleLabel" text="%settings.updates.title" styleClass="card-title"/>
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label fx:id="versionLabel" text="Version actuelle : 1.0.0"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="statusLabel" text="" styleClass="status-label"/>
+                </HBox>
+
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Button fx:id="checkButton" text="🔍 Vérifier les mises à jour" onAction="#handleCheckUpdates" styleClass="primary-button"/>
+                    <Button fx:id="downloadButton" text="⬇️ Télécharger" onAction="#handleDownloadUpdate" visible="false" styleClass="success-button"/>
+                    <Button fx:id="installButton" text="🚀 Installer et redémarrer" onAction="#handleInstallUpdate" visible="false" styleClass="warning-button"/>
+                </HBox>
+
+                <HBox fx:id="progressContainer" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                    <Label fx:id="progressLabel" text="Progression :"/>
+                    <ProgressBar fx:id="downloadProgressBar" prefWidth="300" progress="0"/>
+                </HBox>
+            </VBox>
+
+            <VBox spacing="5" VBox.vgrow="ALWAYS" styleClass="card">
+                <Label fx:id="updateLogTitleLabel" text="%settings.updates.log.title" styleClass="card-title"/>
+                <TextArea fx:id="updateLogArea" editable="false" wrapText="true"
+                          promptText="Les informations de mise à jour apparaîtront ici..."
+                          styleClass="log-area"/>
+            </VBox>
+
+            <VBox spacing="10" styleClass="card"
+                  style="-fx-border-color: #e74c3c; -fx-border-width: 1; -fx-border-radius: 8;">
+                <Label fx:id="uninstallTitleLabel"
+                       text="%settings.uninstall.title"
+                       styleClass="card-title"
+                       style="-fx-text-fill: #e74c3c;"/>
+
+                <Label fx:id="uninstallDescLabel"
+                       text="%settings.uninstall.description"
+                       wrapText="true"
+                       style="-fx-opacity: 0.8;"/>
+
+                <Button fx:id="uninstallButton"
+                        text="%settings.uninstall.button"
+                        onAction="#handleUninstall"
+                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 20;"/>
+            </VBox>
+
+        </VBox>
+    </content>
+</ScrollPane>

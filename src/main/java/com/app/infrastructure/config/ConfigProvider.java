@@ -1,12 +1,27 @@
 package com.app.infrastructure.config;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
 public class ConfigProvider {
     private final Properties properties = new Properties();
+
     public ConfigProvider() {
         loadProperties();
     }
+
+    private File getExternalConfigFile() {
+        File configDir = new File(getConfigPath());
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
+        return new File(configDir, "application.properties");
+    }
+
     private void loadProperties() {
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties")) {
             if (input != null) {
@@ -17,10 +32,57 @@ public class ConfigProvider {
         } catch (IOException e) {
             com.app.infrastructure.util.DailyLogger.logWarn("Config", "Config load failed, using defaults");
         }
+
+        File externalFile = getExternalConfigFile();
+        if (externalFile.exists()) {
+            try (InputStream input = new FileInputStream(externalFile)) {
+                properties.load(input);
+            } catch (IOException e) {
+                com.app.infrastructure.util.DailyLogger.logWarn("Config", "Failed to load external config");
+            }
+        }
     }
+
+    public void saveDatabaseConfig(String url, String user, String password) {
+        properties.setProperty("app.db.url", url);
+        properties.setProperty("app.db.user", user);
+        properties.setProperty("app.db.password", password);
+
+        File externalFile = getExternalConfigFile();
+        try (FileOutputStream out = new FileOutputStream(externalFile)) {
+            properties.store(out, "");
+        } catch (IOException e) {
+            com.app.infrastructure.util.DailyLogger.logError("Config", "Failed to save config", e);
+        }
+    }
+
+    public void saveSyncDatabaseConfig(String url) {
+        Properties props = new Properties();
+        File configFile = new File("src/main/resources/application.properties");
+
+        try {
+            if (configFile.exists()) {
+                try (FileInputStream in = new FileInputStream(configFile)) {
+                    props.load(in);
+                }
+            }
+
+            props.setProperty("app.sync.db.url", url);
+
+            try (FileOutputStream out = new FileOutputStream(configFile)) {
+                props.store(out, "Mise à jour via l'interface des paramètres");
+            }
+
+            System.out.println("Configuration enregistrée dans : " + configFile.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public String getUpdateCheckUrl() {
         return properties.getProperty("app.update.checkUrl", "http://localhost:8000/api/updates/latest");
     }
+
     public int getUpdateTimeoutSeconds() {
         return Integer.parseInt(properties.getProperty("app.update.timeout", "30"));
     }

@@ -1,4 +1,5 @@
 package com.app.infrastructure.ui;
+
 import com.app.domain.port.in.CheckUpdateUseCase;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -14,7 +15,8 @@ import java.util.Comparator;
 
 public class SettingsController {
     private final CheckUpdateUseCase checkUpdateUseCase;
-    
+    private final com.app.infrastructure.config.ConfigProvider configProvider = new com.app.infrastructure.config.ConfigProvider();
+
     @FXML private Label settingsTitleLabel;
     @FXML private Label generalLabel;
     @FXML private Label languageLabel;
@@ -23,7 +25,7 @@ public class SettingsController {
     @FXML private Label statusLabel;
     @FXML private Label progressLabel;
     @FXML private Label updateLogTitleLabel;
-    
+
     @FXML private TextArea updateLogArea;
     @FXML private ProgressBar downloadProgressBar;
     @FXML private Button checkButton;
@@ -31,13 +33,22 @@ public class SettingsController {
     @FXML private Button installButton;
     @FXML private HBox progressContainer;
     @FXML private ToggleButton onlineToggle;
-    
+
     @FXML private Label uninstallTitleLabel;
     @FXML private Label uninstallDescLabel;
     @FXML private Button uninstallButton;
-    
+
     @FXML private ComboBox<java.util.Locale> languageCombo;
-    
+
+    @FXML private Label dbConfigTitleLabel;
+    @FXML private Label dbUrlLabel;
+    @FXML private Label dbUserLabel;
+    @FXML private Label dbPasswordLabel;
+    @FXML private TextField dbUrlField;
+    @FXML private TextField dbUserField;
+    @FXML private PasswordField dbPasswordField;
+    @FXML private Button saveDbButton;
+
     private com.app.domain.model.UpdateInfo pendingUpdate;
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
 
@@ -52,12 +63,13 @@ public class SettingsController {
         setupOnlineToggle();
 
         versionLabel.textProperty().bind(
-            i18n.createStringBinding("settings.updates.version.prefix")
-                .concat(checkUpdateUseCase.getCurrentVersion())
+                i18n.createStringBinding("settings.updates.version.prefix")
+                        .concat(checkUpdateUseCase.getCurrentVersion())
         );
         resetDownloadUI();
+        loadDbConfig();
     }
-    
+
     private void bindI18n() {
         settingsTitleLabel.textProperty().bind(i18n.createStringBinding("settings.title"));
         generalLabel.textProperty().bind(i18n.createStringBinding("settings.general"));
@@ -66,11 +78,11 @@ public class SettingsController {
         progressLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.downloading", 0));
         updateLogTitleLabel.textProperty().bind(i18n.createStringBinding("settings.updates.log.title"));
         updateLogArea.promptTextProperty().bind(i18n.createStringBinding("settings.updates.log.placeholder"));
-        
+
         checkButton.textProperty().bind(i18n.createStringBinding("settings.updates.check.button"));
         downloadButton.textProperty().bind(i18n.createStringBinding("settings.updates.download.button"));
         installButton.textProperty().bind(i18n.createStringBinding("settings.updates.install.button"));
-        
+
         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.uptodate"));
 
         if (uninstallTitleLabel != null) {
@@ -82,6 +94,10 @@ public class SettingsController {
         if (uninstallButton != null) {
             uninstallButton.textProperty().bind(i18n.createStringBinding("settings.uninstall.button"));
         }
+
+        if (dbUrlLabel != null) dbUrlLabel.textProperty().bind(i18n.createStringBinding("settings.db.url"));
+        if (dbUserLabel != null) dbUserLabel.textProperty().bind(i18n.createStringBinding("settings.db.user"));
+        if (dbPasswordLabel != null) dbPasswordLabel.textProperty().bind(i18n.createStringBinding("settings.db.password"));
     }
 
     private void setupLanguageCombo() {
@@ -93,10 +109,10 @@ public class SettingsController {
                 if (object == null) return "";
                 if (object.equals(java.util.Locale.FRENCH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode("Français :fr:");
                 if (object.equals(java.util.Locale.ENGLISH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode("English :us:");
-                
+
                 String display = object.getDisplayName();
                 if (display == null || display.isBlank() || display.equalsIgnoreCase(object.getLanguage())) {
-                    return object.getLanguage() + " (User)"; 
+                    return object.getLanguage() + " (User)";
                 }
                 return display + " [" + object.getLanguage() + "]";
             }
@@ -118,12 +134,12 @@ public class SettingsController {
         AppState appState = AppState.getInstance();
         onlineToggle.setSelected(appState.isOnline());
         onlineToggle.textProperty().bind(
-            javafx.beans.binding.Bindings.createStringBinding(
-                () -> appState.isOnline() 
-                    ? i18n.get("settings.online.active") 
-                    : i18n.get("settings.online.inactive"),
-                appState.onlineProperty(), i18n.localeProperty()
-            )
+                javafx.beans.binding.Bindings.createStringBinding(
+                        () -> appState.isOnline()
+                                ? i18n.get("settings.online.active")
+                                : i18n.get("settings.online.inactive"),
+                        appState.onlineProperty(), i18n.localeProperty()
+                )
         );
         onlineToggle.selectedProperty().addListener((obs, oldVal, newVal) -> {
             appState.setOnline(newVal);
@@ -141,6 +157,49 @@ public class SettingsController {
         downloadProgressBar.setProgress(0);
     }
 
+    private void loadDbConfig() {
+        String syncUrl = configProvider.getSyncDatabaseUrl();
+        String user = "";
+        String pass = "";
+        String hostDb = syncUrl;
+
+        if (syncUrl != null && syncUrl.startsWith("postgresql://")) {
+            String withoutScheme = syncUrl.substring(13);
+            int atIndex = withoutScheme.indexOf('@');
+
+            if (atIndex != -1) {
+                String credentials = withoutScheme.substring(0, atIndex);
+                hostDb = withoutScheme.substring(atIndex + 1);
+
+                int colonIndex = credentials.indexOf(':');
+                if (colonIndex != -1) {
+                    user = credentials.substring(0, colonIndex);
+                    pass = credentials.substring(colonIndex + 1);
+                } else {
+                    user = credentials;
+                }
+            } else {
+                hostDb = withoutScheme;
+            }
+        }
+
+        if (dbUrlField != null) dbUrlField.setText(hostDb);
+        if (dbUserField != null) dbUserField.setText(user);
+        if (dbPasswordField != null) dbPasswordField.setText(pass);
+    }
+
+    @FXML
+    private void handleSaveDbConfig() {
+        String hostDb = dbUrlField.getText() != null ? dbUrlField.getText() : "";
+        String user = dbUserField.getText() != null ? dbUserField.getText() : "";
+        String pass = dbPasswordField.getText() != null ? dbPasswordField.getText() : "";
+
+        String formattedUrl = String.format("postgresql://%s:%s@%s", user, pass, hostDb);
+
+        configProvider.saveSyncDatabaseConfig(formattedUrl);
+        log("Configuration PostgreSQL (Sync) enregistrée avec succès.");
+    }
+
     @FXML
     private void handleCheckUpdates() {
         log(i18n.get("settings.updates.status.checking"));
@@ -148,39 +207,39 @@ public class SettingsController {
         checkButton.setDisable(true);
         statusLabel.textProperty().unbind();
         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.checking"));
-        
+
         checkUpdateUseCase.checkForUpdates()
-            .thenAccept(info -> Platform.runLater(() -> {
-                checkButton.setDisable(false);
-                if (info != null) {
-                    pendingUpdate = info;
-                    statusLabel.textProperty().unbind();
-                    statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.found", info.version()));
-                    log(i18n.get("settings.updates.status.found", info.version()));
-                    log("Description : " + info.description());
-                    com.app.infrastructure.util.DailyLogger.logInfo("Settings", "Update found: " + info.version());
-                    if (info.changelog() != null && !info.changelog().isEmpty()) {
-                        log("\n--- Changelog ---\n" + info.changelog());
-                    }
-                    downloadButton.setVisible(true);
-                    downloadButton.setDisable(false);
-                } else {
-                    statusLabel.textProperty().unbind();
-                    statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.uptodate"));
-                    log(i18n.get("settings.updates.status.uptodate"));
-                    pendingUpdate = null;
-                    resetDownloadUI();
-                }
-            }))
-            .exceptionally(ex -> {
-                Platform.runLater(() -> {
+                .thenAccept(info -> Platform.runLater(() -> {
                     checkButton.setDisable(false);
-                    statusLabel.textProperty().unbind();
-                    statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.error"));
-                    log("❌ " + i18n.get("settings.updates.status.error") + " : " + getRootCause(ex).getMessage());
+                    if (info != null) {
+                        pendingUpdate = info;
+                        statusLabel.textProperty().unbind();
+                        statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.found", info.version()));
+                        log(i18n.get("settings.updates.status.found", info.version()));
+                        log("Description : " + info.description());
+                        com.app.infrastructure.util.DailyLogger.logInfo("Settings", "Update found: " + info.version());
+                        if (info.changelog() != null && !info.changelog().isEmpty()) {
+                            log("\n--- Changelog ---\n" + info.changelog());
+                        }
+                        downloadButton.setVisible(true);
+                        downloadButton.setDisable(false);
+                    } else {
+                        statusLabel.textProperty().unbind();
+                        statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.uptodate"));
+                        log(i18n.get("settings.updates.status.uptodate"));
+                        pendingUpdate = null;
+                        resetDownloadUI();
+                    }
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        checkButton.setDisable(false);
+                        statusLabel.textProperty().unbind();
+                        statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.error"));
+                        log("❌ " + i18n.get("settings.updates.status.error") + " : " + getRootCause(ex).getMessage());
+                    });
+                    return null;
                 });
-                return null;
-            });
     }
 
     @FXML
@@ -196,39 +255,38 @@ public class SettingsController {
         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.downloading", 0));
 
         checkUpdateUseCase.downloadUpdate(pendingUpdate, progress -> {
-            Platform.runLater(() -> {
-                downloadProgressBar.setProgress(progress.percentage() / 100.0);
-                String pct = String.format("%.1f", progress.percentage());
-                statusLabel.textProperty().unbind();
-                statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.downloading", pct));
-            });
-        })
-        .thenAccept(path -> Platform.runLater(() -> {
-            log("✅ " + i18n.get("settings.updates.status.ready"));
-            statusLabel.textProperty().unbind();
-            statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.ready"));
-            installButton.setVisible(true);
-            installButton.setDisable(false);
-            downloadButton.setVisible(false);
-        }))
-        .exceptionally(ex -> {
-            Platform.runLater(() -> {
-                downloadButton.setDisable(false);
-                statusLabel.textProperty().unbind();
-                statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.download.failed"));
-                log("❌ " + i18n.get("settings.updates.status.download.failed") + " : " + getRootCause(ex).getMessage());
-                progressContainer.setVisible(false);
-                progressContainer.setManaged(false);
-            });
-            return null;
-        });
+                    Platform.runLater(() -> {
+                        downloadProgressBar.setProgress(progress.percentage() / 100.0);
+                        String pct = String.format("%.1f", progress.percentage());
+                        statusLabel.textProperty().unbind();
+                        statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.downloading", pct));
+                    });
+                })
+                .thenAccept(path -> Platform.runLater(() -> {
+                    log("✅ " + i18n.get("settings.updates.status.ready"));
+                    statusLabel.textProperty().unbind();
+                    statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.ready"));
+                    installButton.setVisible(true);
+                    installButton.setDisable(false);
+                    downloadButton.setVisible(false);
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        downloadButton.setDisable(false);
+                        statusLabel.textProperty().unbind();
+                        statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.download.failed"));
+                        log("❌ " + i18n.get("settings.updates.status.download.failed") + " : " + getRootCause(ex).getMessage());
+                        progressContainer.setVisible(false);
+                        progressContainer.setManaged(false);
+                    });
+                    return null;
+                });
     }
 
     @FXML
     private void handleInstallUpdate() {
-
         log(i18n.get("settings.updates.install.button"));
-        
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(i18n.get("dialog.update.title"));
         alert.setHeaderText(i18n.get("dialog.update.header"));
@@ -263,24 +321,22 @@ public class SettingsController {
     }
 
     private void performUninstall() {
-        
-        String[] dirsToDelete = {"data", "config", "logs", "updates", "plugins", "themes"}; 
+        String[] dirsToDelete = {"data", "config", "logs", "updates", "plugins", "themes"};
         StringBuilder report = new StringBuilder();
 
         for (String dir : dirsToDelete) {
             Path dirPath = Paths.get(dir);
             if (Files.exists(dirPath)) {
                 try {
-                    
                     Files.walk(dirPath)
-                        .sorted(Comparator.reverseOrder())
-                        .forEach(p -> {
-                            try {
-                                Files.deleteIfExists(p);
-                            } catch (IOException e) {
-                                report.append(i18n.get("settings.uninstall.error.file", p.toString())).append("\n");
-                            }
-                        });
+                            .sorted(Comparator.reverseOrder())
+                            .forEach(p -> {
+                                try {
+                                    Files.deleteIfExists(p);
+                                } catch (IOException e) {
+                                    report.append(i18n.get("settings.uninstall.error.file", p.toString())).append("\n");
+                                }
+                            });
                     report.append("✅ ").append(dir).append("\n");
                 } catch (IOException e) {
                     report.append("❌ ").append(dir).append(": ").append(e.getMessage()).append("\n");
@@ -295,15 +351,15 @@ public class SettingsController {
 
         try {
             String jarPath = getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-            
+
             File jarFile = new File(jarPath);
             if (jarFile.exists() && jarFile.getName().endsWith(".jar")) {
-                 triggerSelfDestruct(jarFile);
-                 report.append("✅ Self-destruct scheduled.\n");
+                triggerSelfDestruct(jarFile);
+                report.append("✅ Self-destruct scheduled.\n");
             }
         } catch (Exception e) {
-             report.append("❌ Self-destruct failed: ").append(e.getMessage()).append("\n");
-             com.app.infrastructure.util.DailyLogger.logError("Uninstall", "Failed to schedule self-destruct", e);
+            report.append("❌ Self-destruct failed: ").append(e.getMessage()).append("\n");
+            com.app.infrastructure.util.DailyLogger.logError("Uninstall", "Failed to schedule self-destruct", e);
         }
 
         Alert doneDialog = new Alert(Alert.AlertType.INFORMATION);
@@ -323,10 +379,8 @@ public class SettingsController {
         ProcessBuilder pb = null;
 
         if (os.contains("win")) {
-
             pb = new ProcessBuilder("cmd", "/c", "ping -n 3 127.0.0.1 > NUL & del /f /q \"" + jarFile.getAbsolutePath() + "\"");
         } else {
-
             pb = new ProcessBuilder("sh", "-c", "sleep 3; rm -f \"" + jarFile.getAbsolutePath() + "\"");
         }
 
