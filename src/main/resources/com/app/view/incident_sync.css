@@ -204,3 +204,30 @@
     -fx-font-size: 13;
     -fx-font-family: 'Consolas';
 }
+
+.sidebar-category-title {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 0 5 8;
+}
+
+.sidebar-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #c9d1d9;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 6 12;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+
+.sidebar-button:hover {
+    -fx-background-color: rgba(177, 186, 196, 0.12);
+    -fx-text-fill: #ffffff;
+}
+
+.sidebar-button:pressed {
+    -fx-background-color: rgba(177, 186, 196, 0.2);
+    -fx-text-fill: #ffffff;
+}
