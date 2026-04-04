@@ -2,52 +2,70 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
-      fx:controller="com.app.infrastructure.ui.ThemeController"
-      spacing="15" styleClass="theme-view">
-    <padding><Insets topRightBottomLeft="20"/></padding>
-    <HBox alignment="CENTER_LEFT" spacing="15">
-        <Label text="%theme.title" styleClass="section-title"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <Label fx:id="currentThemeLabel" text="Thème actuel : Sombre" styleClass="current-theme-label"/>
-    </HBox>
-    <Separator/>
-    <VBox spacing="10" styleClass="card">
-        <HBox alignment="CENTER_LEFT" spacing="10">
-            <Label text="%theme.create.title" styleClass="card-title"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="%theme.create.button" onAction="#handleCreateTheme" styleClass="success-button"/>
-        </HBox>
-        <Label text="%theme.description" styleClass="text-muted"/>
-    </VBox>
 
-    <VBox spacing="10" styleClass="card">
-        <Label text="%theme.install.title" styleClass="card-title"/>
-        <Label text="%theme.install.url" styleClass="text-muted"/>
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <TextField fx:id="themeUrlField" 
-                       promptText="https://exemple.com/theme.zip" 
-                       HBox.hgrow="ALWAYS"/>
-            <Button fx:id="downloadButton" 
-                    text="%theme.download" 
-                    onAction="#handleDownloadTheme" 
-                    styleClass="primary-button"/>
-        </HBox>
-        <Separator/>
-        <Label text="%theme.install.file" styleClass="text-muted"/>
-        <Button text="%theme.choose_file" 
-                onAction="#handleImportThemeLocal" 
-                maxWidth="Infinity"
-                styleClass="secondary-button"/>
-        <Label fx:id="statusLabel" text="" styleClass="status-label"/>
-    </VBox>
-    <VBox spacing="10" VBox.vgrow="ALWAYS" styleClass="card">
-        <Label text="%theme.available" styleClass="card-title"/>
-        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="themes-scroll">
-            <FlowPane fx:id="themesContainer" 
-                      hgap="15" vgap="15" 
-                      prefWrapLength="600"
-                      styleClass="themes-container"/>
-        </ScrollPane>
-    </VBox>
-</VBox>
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.app.infrastructure.ui.ThemeController"
+            fitToWidth="true"
+            hbarPolicy="NEVER">
+
+    <content>
+        <VBox spacing="15" styleClass="theme-view">
+            <padding>
+                <Insets topRightBottomLeft="20"/>
+            </padding>
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label text="%theme.title" styleClass="section-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="currentThemeLabel" text="Thème actuel : Sombre" styleClass="current-theme-label"/>
+            </HBox>
+            <Separator/>
+            <VBox spacing="10" styleClass="card">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="%theme.create.title" styleClass="card-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="%theme.create.button"
+                            onAction="#handleCreateTheme"
+                            styleClass="success-button"/>
+                </HBox>
+                <Label text="%theme.description" styleClass="text-muted"/>
+            </VBox>
+            <VBox spacing="10" styleClass="card">
+
+                <Label text="%theme.install.title" styleClass="card-title"/>
+                <Label text="%theme.install.url" styleClass="text-muted"/>
+
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <TextField fx:id="themeUrlField"
+                               promptText="https://exemple.com/theme.zip"
+                               HBox.hgrow="ALWAYS"/>
+
+                    <Button fx:id="downloadButton"
+                            text="%theme.download"
+                            onAction="#handleDownloadTheme"
+                            styleClass="primary-button"/>
+                </HBox>
+                <Separator/>
+                <Label text="%theme.install.file" styleClass="text-muted"/>
+                <Button text="%theme.choose_file"
+                        onAction="#handleImportThemeLocal"
+                        maxWidth="Infinity"
+                        styleClass="secondary-button"/>
+
+                <Label fx:id="statusLabel" text="" styleClass="status-label"/>
+            </VBox>
+            <VBox spacing="10" VBox.vgrow="ALWAYS" styleClass="card">
+                <Label text="%theme.available" styleClass="card-title"/>
+                <ScrollPane fitToWidth="true"
+                            VBox.vgrow="ALWAYS"
+                            styleClass="themes-scroll">
+                    <FlowPane fx:id="themesContainer"
+                              hgap="15"
+                              vgap="15"
+                              prefWrapLength="600"
+                              styleClass="themes-container"/>
+                </ScrollPane>
+            </VBox>
+        </VBox>
+    </content>
+</ScrollPane>

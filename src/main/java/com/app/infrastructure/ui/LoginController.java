@@ -90,17 +90,17 @@ public class LoginController {
         setStatus(i18n.get("auth.login.wait"), false);
 
         CompletableFuture
-            .supplyAsync(() -> awaitingTwoFactor
-                ? authUseCase.loginWith2FA(email, password, code)
-                : authUseCase.login(email, password))
-            .thenAccept(result -> Platform.runLater(() -> handleLoginResult(result)))
-            .exceptionally(ex -> {
-                Platform.runLater(() -> {
-                    setBusy(false);
-                    setStatus(resolveErrorMessage(ex), true);
+                .supplyAsync(() -> awaitingTwoFactor
+                        ? authUseCase.loginWith2FA(email, password, code)
+                        : authUseCase.login(email, password))
+                .thenAccept(result -> Platform.runLater(() -> handleLoginResult(result)))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        setBusy(false);
+                        setStatus(resolveErrorMessage(ex), true);
+                    });
+                    return null;
                 });
-                return null;
-            });
     }
 
     @FXML
@@ -109,19 +109,30 @@ public class LoginController {
         setStatus(i18n.get("auth.login.wait.sso"), false);
 
         CompletableFuture
-            .supplyAsync(authUseCase::loginWithSso)
-            .thenAccept(accessToken -> Platform.runLater(() -> {
-                setBusy(false);
-                setStatus(i18n.get("auth.login.success"), false);
-                onAuthenticated.accept(accessToken);
-            }))
-            .exceptionally(ex -> {
-                Platform.runLater(() -> {
+                .supplyAsync(authUseCase::loginWithSso)
+                .thenAccept(combinedResult -> Platform.runLater(() -> {
                     setBusy(false);
-                    setStatus(resolveErrorMessage(ex), true);
+                    setStatus(i18n.get("auth.login.success"), false);
+                    String accessToken = combinedResult;
+                    String refreshToken = "";
+
+                    if (combinedResult.contains(":")) {
+                        String[] parts = combinedResult.split(":", 2);
+                        accessToken = parts[0];
+                        refreshToken = parts[1];
+                    }
+
+                    com.app.infrastructure.adapter.auth.TokenManager.saveTokens(accessToken, refreshToken);
+
+                    onAuthenticated.accept(accessToken);
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        setBusy(false);
+                        setStatus(resolveErrorMessage(ex), true);
+                    });
+                    return null;
                 });
-                return null;
-            });
     }
 
     private void handleLoginResult(AuthResult result) {

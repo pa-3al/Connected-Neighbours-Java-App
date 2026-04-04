@@ -5,7 +5,6 @@ import com.app.infrastructure.config.ConfigProvider;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.io.File;
 
 public class DatabaseConfig {
 
@@ -14,11 +13,6 @@ public class DatabaseConfig {
     private final String dbPassword;
 
     public DatabaseConfig() {
-        File dataDir = new File("./data");
-        if (!dataDir.exists()) {
-            dataDir.mkdirs();
-        }
-
         ConfigProvider configProvider = new ConfigProvider();
         dbUrl = configProvider.getDatabaseUrl();
         dbUser = configProvider.getDatabaseUser();
