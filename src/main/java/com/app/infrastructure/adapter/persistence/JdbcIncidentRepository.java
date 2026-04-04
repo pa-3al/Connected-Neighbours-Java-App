@@ -13,7 +13,6 @@ import java.util.Optional;
 
 import com.app.domain.model.Incident;
 import com.app.domain.model.Incident.IncidentCategory;
-import com.app.domain.model.Incident.IncidentPriority;
 import com.app.domain.model.Incident.IncidentStatus;
 import com.app.domain.model.SyncStatus;
 import com.app.domain.port.out.IncidentRepository;
@@ -35,11 +34,11 @@ public class JdbcIncidentRepository implements IncidentRepository {
             LEFT JOIN users u ON i.reported_by_user_id = u.id
             ORDER BY i.reported_at DESC
             """;
-        
+
         try (Connection conn = databaseConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            
+
             while (rs.next()) {
                 incidents.add(mapRow(rs));
             }
@@ -59,7 +58,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
             """;
         try (Connection conn = databaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+
             stmt.setString(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -75,43 +74,41 @@ public class JdbcIncidentRepository implements IncidentRepository {
     @Override
     public Incident save(Incident incident) {
         String sql = """
-            INSERT INTO reports (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reports (id, title, description, category, status, reported_by_user_id, reported_by, admin_response_message, reported_at, resolved_at, last_modified, sync_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 description = excluded.description,
                 category = excluded.category,
                 status = excluded.status,
-                priority = excluded.priority,
                 reported_by_user_id = excluded.reported_by_user_id,
                 reported_by = excluded.reported_by,
-                location = excluded.location,
+                admin_response_message = excluded.admin_response_message,
                 reported_at = excluded.reported_at,
                 resolved_at = excluded.resolved_at,
                 last_modified = excluded.last_modified,
                 sync_status = excluded.sync_status
         """;
-        
+
         try (Connection conn = databaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-             
+
             stmt.setString(1, incident.id());
             stmt.setString(2, incident.title());
             stmt.setString(3, incident.description());
             stmt.setString(4, incident.category() != null ? incident.category().name() : null);
             stmt.setString(5, incident.status() != null ? incident.status().name() : null);
-            stmt.setString(6, incident.priority() != null ? incident.priority().name() : null);
-            stmt.setString(7, incident.reportedByUserId());
-            stmt.setString(8, incident.reportedBy());
-            stmt.setString(9, incident.location());
-            stmt.setTimestamp(10, toTimestamp(incident.reportedAt()));
-            stmt.setTimestamp(11, toTimestamp(incident.resolvedAt()));
-            stmt.setTimestamp(12, toTimestamp(incident.lastModified()));
-            stmt.setString(13, incident.syncStatus() != null ? incident.syncStatus().name() : null);
-            
+            stmt.setString(6, incident.reportedByUserId());
+            stmt.setString(7, incident.reportedBy());
+            stmt.setString(8, incident.adminResponseMessage());
+            stmt.setTimestamp(9, toTimestamp(incident.reportedAt()));
+            stmt.setTimestamp(10, toTimestamp(incident.resolvedAt()));
+            stmt.setTimestamp(11, toTimestamp(incident.lastModified()));
+            stmt.setString(12, incident.syncStatus() != null ? incident.syncStatus().name() : null);
+
             stmt.executeUpdate();
             return incident;
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Error saving report", e);
         }
@@ -122,10 +119,10 @@ public class JdbcIncidentRepository implements IncidentRepository {
         String sql = "DELETE FROM reports WHERE id = ?";
         try (Connection conn = databaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+
             stmt.setString(1, id);
             stmt.executeUpdate();
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Error deleting report", e);
         }
@@ -141,10 +138,10 @@ public class JdbcIncidentRepository implements IncidentRepository {
             WHERE i.status = ?
             ORDER BY i.reported_at DESC
             """;
-        
+
         try (Connection conn = databaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+
             stmt.setString(1, status.name());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -164,26 +161,25 @@ public class JdbcIncidentRepository implements IncidentRepository {
         }
 
         return new Incident(
-            rs.getString("id"),
-            rs.getString("title"),
-            rs.getString("description"),
-            parseEnum(IncidentCategory.class, rs.getString("category")),
-            parseEnum(IncidentStatus.class, rs.getString("status")),
-            parseEnum(IncidentPriority.class, rs.getString("priority")),
-            rs.getString("reported_by_user_id"),
-            reportedByDisplay,
-            rs.getString("location"),
-            parseDbDate(rs.getString("reported_at")),
-            parseDbDate(rs.getString("resolved_at")),
-            parseDbDate(rs.getString("last_modified")),
-            parseEnum(SyncStatus.class, rs.getString("sync_status"))
+                rs.getString("id"),
+                rs.getString("title"),
+                rs.getString("description"),
+                parseEnum(IncidentCategory.class, rs.getString("category")),
+                parseEnum(IncidentStatus.class, rs.getString("status")),
+                rs.getString("reported_by_user_id"),
+                reportedByDisplay,
+                rs.getString("admin_response_message"),
+                parseDbDate(rs.getString("reported_at")),
+                parseDbDate(rs.getString("resolved_at")),
+                parseDbDate(rs.getString("last_modified")),
+                parseEnum(SyncStatus.class, rs.getString("sync_status"))
         );
     }
 
     private Timestamp toTimestamp(LocalDateTime ldt) {
         return ldt == null ? null : Timestamp.valueOf(ldt);
     }
-    
+
     private LocalDateTime parseDbDate(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) {
             return null;
@@ -191,8 +187,8 @@ public class JdbcIncidentRepository implements IncidentRepository {
         try {
             if (dateStr.matches("^\\d+$")) {
                 return LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
-                    java.time.ZoneId.systemDefault()
+                        java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
+                        java.time.ZoneId.systemDefault()
                 );
             }
             String normalized = dateStr.replace(' ', 'T');
@@ -202,7 +198,7 @@ public class JdbcIncidentRepository implements IncidentRepository {
             return null;
         }
     }
-    
+
     private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value) {
         if (value == null) return null;
         try {

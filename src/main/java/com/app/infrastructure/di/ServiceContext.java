@@ -1,22 +1,11 @@
 package com.app.infrastructure.di;
 
-import com.app.domain.port.out.AlertRepository;
-import com.app.domain.port.out.I18nPort;
-import com.app.domain.port.out.IncidentRepository;
-import com.app.domain.port.out.LoggerPort;
-import com.app.domain.port.out.QueryEngine;
-import com.app.domain.service.AlertService;
-import com.app.domain.service.AuthService;
-import com.app.domain.service.IncidentService;
-import com.app.domain.service.PluginService;
-import com.app.domain.service.UpdateService;
+import com.app.domain.port.out.*;
+import com.app.domain.service.*;
 import com.app.infrastructure.adapter.auth.HttpAdminAuthRepository;
 import com.app.infrastructure.adapter.i18n.I18nAdapter;
 import com.app.infrastructure.adapter.logging.LoggerAdapter;
-import com.app.infrastructure.adapter.persistence.DatabaseConfig;
-import com.app.infrastructure.adapter.persistence.JdbcAlertRepository;
-import com.app.infrastructure.adapter.persistence.JdbcIncidentRepository;
-import com.app.infrastructure.adapter.persistence.SchemaInitializer;
+import com.app.infrastructure.adapter.persistence.*;
 import com.app.infrastructure.adapter.plugin.DefaultPluginContext;
 import com.app.infrastructure.adapter.plugin.FileSystemPluginAdapter;
 import com.app.infrastructure.adapter.plugin.HeadlessPluginContext;
@@ -42,10 +31,12 @@ public class ServiceContext {
     private volatile DatabaseConfig databaseConfig;
     private volatile IncidentRepository incidentRepository;
     private volatile AlertRepository alertRepository;
+    private volatile UserRepository userRepository;
     
     private volatile IncidentService incidentService;
     private volatile AlertService alertService;
     private volatile AuthService authService;
+    private volatile UserService userService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -65,6 +56,19 @@ public class ServiceContext {
             }
         }
         return incidentService;
+    }
+
+    public UserService getUserService() {
+        if (userService == null) {
+            synchronized (this) {
+                if (userService == null) {
+                    RemoteUserRepository remoteUserRepository = new JdbcRemoteUserRepository(configProvider);
+                    userService = new UserService(getUserRepository(), remoteUserRepository) {
+                    };
+                }
+            }
+        }
+        return userService;
     }
 
     public AlertService getAlertService() {
@@ -216,6 +220,17 @@ public class ServiceContext {
             }
         }
         return incidentRepository;
+    }
+
+    private UserRepository getUserRepository() {
+        if (userRepository == null) {
+            synchronized (this) {
+                if (userRepository == null) {
+                    userRepository = new JdbcUserRepository(getDatabaseConfig());
+                }
+            }
+        }
+        return userRepository;
     }
 
     private AlertRepository getAlertRepository() {
