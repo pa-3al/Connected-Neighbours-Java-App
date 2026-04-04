@@ -26,11 +26,7 @@ public class IncidentService implements IncidentUseCase {
 
     @Override
     public Incident createIncident(Incident incident) {
-        // Ensure ID presence or any other validation logic
         if (incident.id() == null || incident.id().isEmpty()) {
-            // Re-create with new ID if needed, though record is immutable
-             // This might be better handled by the caller or a factory
-             // But let's assume valid incident is passed for now
         }
         return repository.save(incident);
     }
@@ -44,7 +40,7 @@ public class IncidentService implements IncidentUseCase {
     public Incident resolveIncident(String id) {
         return repository.findById(id)
             .map(incident -> {
-                Incident resolved = incident.withStatus(IncidentStatus.RESOLVED);
+                Incident resolved = incident.withStatus(IncidentStatus.COMPLETED);
                 return repository.save(resolved);
             })
             .orElseThrow(() -> new IllegalArgumentException("Incident not found: " + id));

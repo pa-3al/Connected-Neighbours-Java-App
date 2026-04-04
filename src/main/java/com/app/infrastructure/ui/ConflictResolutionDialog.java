@@ -36,7 +36,7 @@ public class ConflictResolutionDialog {
         dialog.setHeaderText(null);
 
         String css = Objects.requireNonNull(
-            getClass().getResource("/com/app/view/incident_sync.css")
+                getClass().getResource("/com/app/view/incident_sync.css")
         ).toExternalForm();
         dialog.getDialogPane().getStylesheets().add(css);
 
@@ -63,12 +63,9 @@ public class ConflictResolutionDialog {
         FieldResolver descRes = addMergeBlock(blocks, i18n.get("incident.sync.field.description"), local.description(), server.description(), baseRec, allResolvers);
         FieldResolver catRes = addMergeBlock(blocks, i18n.get("incident.sync.field.category"), local.category(), server.category(), baseRec, allResolvers);
         FieldResolver statusRes = addMergeBlock(blocks, i18n.get("incident.sync.field.status"), local.status(), server.status(), baseRec, allResolvers);
-        FieldResolver prioRes = addMergeBlock(blocks, i18n.get("incident.sync.field.priority"), local.priority(), server.priority(), baseRec, allResolvers);
-        FieldResolver reporterRes = addMergeBlock(blocks, i18n.get("incident.sync.field.reported_by"), local.reportedBy(), server.reportedBy(), baseRec, allResolvers);
-        FieldResolver locRes = addMergeBlock(blocks, i18n.get("incident.sync.field.location"), local.location(), server.location(), baseRec, allResolvers);
+        FieldResolver adminMessageRes = addMergeBlock(blocks, i18n.get("incident.sync.field.admin_response"), local.adminResponseMessage(), server.adminResponseMessage(), baseRec, allResolvers);
         FieldResolver reportedAtRes = addMergeBlock(blocks, i18n.get("incident.sync.field.reported_at"), local.reportedAt(), server.reportedAt(), baseRec, allResolvers);
         FieldResolver resolvedAtRes = addMergeBlock(blocks, i18n.get("incident.sync.field.resolved_at"), local.resolvedAt(), server.resolvedAt(), baseRec, allResolvers);
-        FieldResolver modifiedRes = addMergeBlock(blocks, i18n.get("incident.sync.field.last_modified"), local.lastModified(), server.lastModified(), baseRec, allResolvers);
 
         Button acceptAllLocal = new Button("\u2713 " + i18n.get("incident.sync.conflict.keep_local_all"));
         acceptAllLocal.getStyleClass().add("btn-accept-all-local");
@@ -110,19 +107,18 @@ public class ConflictResolutionDialog {
         dialog.setResultConverter(buttonType -> {
             if (buttonType != resolveBtn) return null;
             return new Incident(
-                local.id(),
-                pickField(titleRes, local.title(), server.title()),
-                pickField(descRes, local.description(), server.description()),
-                pickField(catRes, local.category(), server.category()),
-                pickField(statusRes, local.status(), server.status()),
-                pickField(prioRes, local.priority(), server.priority()),
-                pickField(reporterRes, local.reportedByUserId(), server.reportedByUserId()),
-                pickField(reporterRes, local.reportedBy(), server.reportedBy()),
-                pickField(locRes, local.location(), server.location()),
-                pickField(reportedAtRes, local.reportedAt(), server.reportedAt()),
-                pickField(resolvedAtRes, local.resolvedAt(), server.resolvedAt()),
-                pickField(modifiedRes, local.lastModified(), server.lastModified()),
-                SyncStatus.SYNCED
+                    local.id(),
+                    pickField(titleRes, local.title(), server.title()),
+                    pickField(descRes, local.description(), server.description()),
+                    pickField(catRes, local.category(), server.category()),
+                    pickField(statusRes, local.status(), server.status()),
+                    server.reportedByUserId() != null && !server.reportedByUserId().isBlank() ? server.reportedByUserId() : local.reportedByUserId(),
+                    server.reportedBy() != null && !server.reportedBy().isBlank() ? server.reportedBy() : local.reportedBy(),
+                    pickField(adminMessageRes, local.adminResponseMessage(), server.adminResponseMessage()),
+                    pickField(reportedAtRes, local.reportedAt(), server.reportedAt()),
+                    pickField(resolvedAtRes, local.resolvedAt(), server.resolvedAt()),
+                    LocalDateTime.now(),
+                    SyncStatus.SYNCED
             );
         });
 
@@ -130,7 +126,7 @@ public class ConflictResolutionDialog {
     }
 
     private FieldResolver addMergeBlock(VBox container, String fieldName, Object localValue,
-            Object serverValue, SourceChoice baseRec, List<FieldResolver> allResolvers) {
+                                        Object serverValue, SourceChoice baseRec, List<FieldResolver> allResolvers) {
         boolean isDifferent = !Objects.equals(localValue, serverValue);
         SourceChoice recommended = recommendedChoice(localValue, serverValue, baseRec);
         FieldResolver resolver = new FieldResolver(recommended);

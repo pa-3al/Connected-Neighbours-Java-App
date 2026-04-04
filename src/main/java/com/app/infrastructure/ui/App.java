@@ -118,7 +118,7 @@ public class App extends Application {
 
             FXMLLoader incidentLoader = new FXMLLoader(App.class.getResource("/com/app/view/IncidentView.fxml"));
             incidentLoader.setResources(bundle);
-            incidentLoader.setControllerFactory(param -> new IncidentController(serviceContext.getIncidentService()));
+            incidentLoader.setControllerFactory(param -> new IncidentController(serviceContext.getIncidentService(), serviceContext.getUserService()));
             Parent incidentView = incidentLoader.load();
 
             DailyLogger.logInfo("App", "All views loaded successfully");

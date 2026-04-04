@@ -1,12 +1,14 @@
 package com.app.infrastructure.ui;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
 import com.app.domain.model.Incident;
 import com.app.domain.model.Incident.IncidentCategory;
-import com.app.domain.model.Incident.IncidentPriority;
+import com.app.domain.model.Incident.IncidentStatus;
 import com.app.domain.service.IncidentService;
+import com.app.domain.service.UserService;
 import com.app.infrastructure.i18n.I18nService;
 import com.app.infrastructure.sync.IncidentSyncManager;
 import com.app.infrastructure.sync.IncidentSyncReport;
@@ -21,17 +23,21 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.GridPane;
+import javafx.scene.web.WebView;
 
 public class IncidentController {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private final IncidentService incidentService;
+    private final UserService userService;
     private final IncidentSyncManager syncManager;
     private final ConflictResolutionDialog conflictDialog = new ConflictResolutionDialog();
     private final I18nService i18n = I18nService.getInstance();
@@ -40,8 +46,9 @@ public class IncidentController {
     @FXML private TableColumn<Incident, String> colId;
     @FXML private TableColumn<Incident, String> colTitle;
     @FXML private TableColumn<Incident, String> colCategory;
-    @FXML private TableColumn<Incident, String> colPriority;
     @FXML private TableColumn<Incident, String> colStatus;
+    @FXML private TableColumn<Incident, String> colSyncStatus;
+    @FXML private TableColumn<Incident, Void> colDescription;
     @FXML private TableColumn<Incident, String> colReportedBy;
     @FXML private TableColumn<Incident, String> colDate;
 
@@ -49,8 +56,9 @@ public class IncidentController {
     @FXML private Button btnDelete;
     @FXML private Button btnSync;
 
-    public IncidentController(IncidentService incidentService) {
+    public IncidentController(IncidentService incidentService, UserService userService) {
         this.incidentService = incidentService;
+        this.userService = userService;
         this.syncManager = new IncidentSyncManager(incidentService);
     }
 
@@ -61,8 +69,10 @@ public class IncidentController {
 
         incidentTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             boolean selected = newSel != null;
-            btnResolve.setDisable(!selected);
-            btnDelete.setDisable(!selected);
+            boolean isCompleted = selected && newSel.status() == IncidentStatus.COMPLETED;
+
+            btnResolve.setDisable(!selected || isCompleted);
+            btnDelete.setDisable(!selected || isCompleted);
         });
 
         btnResolve.setDisable(true);
@@ -73,14 +83,54 @@ public class IncidentController {
         colId.setCellValueFactory(cd -> new SimpleStringProperty(shortId(cd.getValue().id())));
         colTitle.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().title()));
         colCategory.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().category())));
-        colPriority.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().priority())));
-        colStatus.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().status())));
-        colReportedBy.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().reportedBy()));
+        colSyncStatus.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().syncStatus())));
+
+        colStatus.setCellValueFactory(cd -> {
+            if (cd.getValue().status() != null) {
+                String key = "incident.status." + cd.getValue().status().name().toLowerCase();
+                return new SimpleStringProperty(i18n.get(key));
+            }
+            return new SimpleStringProperty("");
+        });
+
+        colReportedBy.setCellValueFactory(cd -> {
+            String userId = cd.getValue().reportedByUserId();
+            if (userId != null && !userId.isEmpty()) {
+                String fullName = userService.getUserFullName(userId);
+                return new SimpleStringProperty(fullName != null ? fullName : userId);
+            }
+            return new SimpleStringProperty(valOrEmpty(cd.getValue().reportedBy()));
+        });
+
         colDate.setCellValueFactory(cd -> {
             if (cd.getValue().reportedAt() != null) {
                 return new SimpleStringProperty(cd.getValue().reportedAt().format(DATE_FORMATTER));
             }
             return new SimpleStringProperty("");
+        });
+
+        colDescription.setCellFactory(param -> new TableCell<>() {
+            private final Button btn = new Button(i18n.get("incident.action.view"));
+            {
+                btn.setOnAction(event -> {
+                    Incident incident = getTableView().getItems().get(getIndex());
+                    String html = incident.description();
+                    if (incident.adminResponseMessage() != null && !incident.adminResponseMessage().isBlank()) {
+                        html += "<br><hr><br><b>Admin Response:</b><br>" + incident.adminResponseMessage();
+                    }
+                    showHtmlDialog(incident.title(), html);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btn);
+                }
+            }
         });
     }
 
@@ -96,13 +146,14 @@ public class IncidentController {
     @FXML
     private void handleSync() {
         try {
+            userService.syncUsers();
             IncidentSyncReport report = syncManager.syncWithBackend(conflictDialog::resolve);
             loadData();
             showInfo(
-                i18n.get("incident.sync.report.title"),
-                i18n.get("incident.sync.report.body",
-                    report.pushedToServer(), report.pulledFromServer(),
-                    report.conflictsResolved(), report.conflictsUnresolved(), report.unchanged())
+                    i18n.get("incident.sync.report.title"),
+                    i18n.get("incident.sync.report.body",
+                            report.pushedToServer(), report.pulledFromServer(),
+                            report.conflictsResolved(), report.conflictsUnresolved(), report.unchanged())
             );
         } catch (Exception e) {
             showError(i18n.get("incident.sync.error.title"), e.getMessage());
@@ -113,11 +164,27 @@ public class IncidentController {
     private void handleResolve() {
         Incident selected = incidentTable.getSelectionModel().getSelectedItem();
         if (selected == null) return;
-        try {
-            incidentService.resolveIncident(selected.id());
-            loadData();
-        } catch (Exception e) {
-            showError("Error resolving incident", e.getMessage());
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Resolve Incident");
+        dialog.setHeaderText("Resolve incident: " + selected.title());
+        dialog.setContentText("Admin response message:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            try {
+                Incident resolved = selected.withStatus(IncidentStatus.COMPLETED);
+                Incident updated = new Incident(
+                        resolved.id(), resolved.title(), resolved.description(),
+                        resolved.category(), resolved.status(), resolved.reportedByUserId(),
+                        resolved.reportedBy(), result.get(), resolved.reportedAt(),
+                        resolved.resolvedAt(), LocalDateTime.now(), resolved.syncStatus()
+                );
+                incidentService.updateIncident(updated);
+                loadData();
+            } catch (Exception e) {
+                showError("Error resolving incident", e.getMessage());
+            }
         }
     }
 
@@ -159,31 +226,22 @@ public class IncidentController {
         TextField title = new TextField();
         title.setPromptText("Title");
         TextArea description = new TextArea();
-        description.setPromptText("Description");
+        description.setPromptText("Description HTML");
         description.setPrefRowCount(3);
         ComboBox<IncidentCategory> category = new ComboBox<>();
         category.getItems().setAll(IncidentCategory.values());
-        ComboBox<IncidentPriority> priority = new ComboBox<>();
-        priority.getItems().setAll(IncidentPriority.values());
-        TextField location = new TextField();
-        location.setPromptText("Location");
-        TextField reporter = new TextField();
-        reporter.setPromptText("Reported By");
 
         grid.add(new Label("Title:"), 0, 0);       grid.add(title, 1, 0);
         grid.add(new Label("Category:"), 0, 1);     grid.add(category, 1, 1);
-        grid.add(new Label("Priority:"), 0, 2);     grid.add(priority, 1, 2);
-        grid.add(new Label("Location:"), 0, 3);     grid.add(location, 1, 3);
-        grid.add(new Label("Reported By:"), 0, 4);  grid.add(reporter, 1, 4);
-        grid.add(new Label("Description:"), 0, 5);  grid.add(description, 1, 5);
+        grid.add(new Label("Description:"), 0, 2);  grid.add(description, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
             if (btn == createBtn) {
                 return Incident.create(
-                    UUID.randomUUID().toString(), title.getText(), description.getText(),
-                    category.getValue(), priority.getValue(), reporter.getText(), location.getText()
+                        UUID.randomUUID().toString(), title.getText(), description.getText(),
+                        category.getValue(), null
                 );
             }
             return null;
@@ -193,6 +251,20 @@ public class IncidentController {
             incidentService.createIncident(incident);
             loadData();
         });
+    }
+
+    private void showHtmlDialog(String title, String htmlContent) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(i18n.get("incident.description.title"));
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        WebView webView = new WebView();
+        webView.getEngine().loadContent(htmlContent != null ? htmlContent : "");
+        webView.setPrefSize(600, 400);
+
+        dialog.getDialogPane().setContent(webView);
+        dialog.showAndWait();
     }
 
     private String shortId(String id) {

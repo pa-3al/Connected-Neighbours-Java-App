@@ -29,8 +29,7 @@ public class SchemaInitializer {
                     sync_status VARCHAR(50)
                 )
             """);
-            
-            // Report/Incident
+
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS reports (
                     id VARCHAR(36) PRIMARY KEY,
@@ -42,43 +41,18 @@ public class SchemaInitializer {
                     reported_by_user_id VARCHAR(36),
                     reported_by VARCHAR(255),
                     location VARCHAR(255),
+                    admin_response_message CLOB,
                     reported_at TIMESTAMP,
                     resolved_at TIMESTAMP,
                     last_modified TIMESTAMP,
                     sync_status VARCHAR(50)
                 )
-            """);
-
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS incidents (
-                    id VARCHAR(36) PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    description CLOB,
-                    category VARCHAR(50),
-                    status VARCHAR(50),
-                    priority VARCHAR(50),
-                    reported_by_user_id VARCHAR(36),
-                    reported_by VARCHAR(255),
-                    location VARCHAR(255),
-                    reported_at TIMESTAMP,
-                    resolved_at TIMESTAMP,
-                    last_modified TIMESTAMP,
-                    sync_status VARCHAR(50)
-                )
-            """);
-
-            stmt.execute("""
-                INSERT INTO reports (id, title, description, category, status, priority, reported_by_user_id, reported_by, location, reported_at, resolved_at, last_modified, sync_status)
-                SELECT i.id, i.title, i.description, i.category, i.status, i.priority, i.reported_by_user_id, i.reported_by, i.location, i.reported_at, i.resolved_at, i.last_modified, i.sync_status
-                FROM incidents i
-                WHERE NOT EXISTS (SELECT 1 FROM reports r WHERE r.id = i.id)
             """);
 
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
 
-            // Alerte
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS alerts (
                     id VARCHAR(36) PRIMARY KEY,
