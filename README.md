@@ -1,4 +1,4 @@
-# Java app
+# Java app connected nighbours
 
 1. **Nettoyer le projet (clean)**
    ```bash
