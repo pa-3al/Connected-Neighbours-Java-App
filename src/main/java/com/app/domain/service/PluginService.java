@@ -18,7 +18,6 @@ public class PluginService implements PluginUseCase {
     private final LoggerPort logger;
     private final Map<String, PluginMetadata> pluginsMap = new HashMap<>();
     private final Map<String, Plugin> loadedPlugins = new HashMap<>();
-    private final Map<String, Plugin> internalPlugins = new HashMap<>();
 
     public PluginService(PluginRepository pluginRepository, PluginContext pluginContext,
                          I18nPort i18n, LoggerPort logger) {
