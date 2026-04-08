@@ -27,6 +27,13 @@ public class FileSystemPluginAdapter implements PluginRepository {
     private final long maxJarSizeBytes;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, URLClassLoader> classLoaders = new HashMap<>();
+
+    private String toClassName(String entryName) {
+        return entryName
+            .replace('\\', '/')
+            .replace('/', '.')
+            .replace(".class", "");
+    }
     public FileSystemPluginAdapter(String pluginsPath, String statePath, long maxJarSizeBytes) {
         this.pluginsDir = Path.of(pluginsPath);
         this.stateFilePath = Path.of(statePath);
@@ -94,7 +101,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
             JarEntry entry = entries.nextElement();
             String name = entry.getName();
             if (name.endsWith(".class") && !name.contains("$")) {
-                String className = name.replace('/', '.').replace(".class", "");
+                String className = toClassName(name);
                 try {
                     URLClassLoader loader = new URLClassLoader(
                         new URL[]{jarFile.toURI().toURL()},
@@ -183,7 +190,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                     JarEntry entry = entries.nextElement();
                     String name = entry.getName();
                     if (name.endsWith(".class") && !name.contains("$")) {
-                        String className = name.replace('/', '.').replace(".class", "");
+                        String className = toClassName(name);
                         try {
                             Class<?> clazz = loader.loadClass(className);
                             if (Plugin.class.isAssignableFrom(clazz) && !clazz.isInterface()) {
@@ -211,7 +218,7 @@ public class FileSystemPluginAdapter implements PluginRepository {
                     JarEntry entry = entries.nextElement();
                     String name = entry.getName();
                     if (name.endsWith(".class") && !name.contains("$")) {
-                        String className = name.replace('/', '.').replace(".class", "");
+                        String className = toClassName(name);
                         try {
                             Class<?> clazz = loader.loadClass(className);
                             if (Plugin.class.isAssignableFrom(clazz) && !clazz.isInterface()) {
