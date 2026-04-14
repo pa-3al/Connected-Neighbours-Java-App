@@ -1,24 +1,10 @@
 package com.app.infrastructure.sync;
 
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -33,137 +19,64 @@ import com.app.domain.service.IncidentService;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.adapter.persistence.DatabaseConfig;
 import com.app.infrastructure.config.ConfigProvider;
-import com.app.infrastructure.util.DailyLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class IncidentSyncManager {
 
-    private static final String REPORTS_TABLE = "reports";
-    private static final String LEGACY_INCIDENTS_TABLE = "incidents";
+    private static final String MERGE_CONFLICT_SENTINEL = "___CONFLICT___";
 
     private final IncidentService incidentService;
-    private final DatabaseConfig databaseConfig;
-    private final ConfigProvider configProvider;
-    private final AuthenticatedHttpClient authenticatedHttpClient;
+    private final IncidentBackendGateway backendGateway;
+    private final IncidentSqliteGateway sqliteGateway;
 
     public IncidentSyncManager(IncidentService incidentService) {
-        this(incidentService, new DatabaseConfig());
+        this(
+                incidentService,
+                new DatabaseConfig(),
+                new ConfigProvider(),
+                new AuthenticatedHttpClient()
+        );
     }
 
     public IncidentSyncManager(IncidentService incidentService, DatabaseConfig databaseConfig) {
-        this.incidentService = incidentService;
-        this.databaseConfig = databaseConfig;
-        this.configProvider = new ConfigProvider();
-        this.authenticatedHttpClient = new AuthenticatedHttpClient();
+        this(
+                incidentService,
+                databaseConfig,
+                new ConfigProvider(),
+                new AuthenticatedHttpClient()
+        );
+    }
+
+    IncidentSyncManager(
+            IncidentService incidentService,
+            DatabaseConfig databaseConfig,
+            ConfigProvider configProvider,
+            AuthenticatedHttpClient authenticatedHttpClient
+    ) {
+        this.incidentService = Objects.requireNonNull(incidentService, "incidentService must not be null");
+        this.backendGateway = new IncidentBackendGateway(
+                Objects.requireNonNull(configProvider, "configProvider must not be null"),
+                Objects.requireNonNull(authenticatedHttpClient, "authenticatedHttpClient must not be null")
+        );
+        this.sqliteGateway = new IncidentSqliteGateway(
+                Objects.requireNonNull(databaseConfig, "databaseConfig must not be null")
+        );
     }
 
     public IncidentSyncReport syncWithBackend(Function<IncidentConflict, Incident> conflictResolver) {
         Objects.requireNonNull(conflictResolver, "conflictResolver must not be null");
 
         Map<String, Incident> localById = toMapById(incidentService.getAllIncidents());
-        Map<String, Incident> serverById = toMapById(fetchServerIncidentsFromBackend());
-        int pushedToServer = 0;
-        int pulledFromServer = 0;
-        int conflictsResolved = 0;
-        int conflictsUnresolved = 0;
-        int unchanged = 0;
+        Map<String, Incident> serverById = backendGateway.fetchIncidentsById();
+        IncidentSyncMetrics metrics = new IncidentSyncMetrics();
 
-        Set<String> allIds = new TreeSet<>();
-        allIds.addAll(localById.keySet());
-        allIds.addAll(serverById.keySet());
-
-        for (String id : allIds) {
+        for (String id : collectAllIds(localById, serverById)) {
             Incident local = localById.get(id);
             Incident server = serverById.get(id);
-
-            if (local == null && server != null) {
-                Incident synced = withSyncMetadata(server, LocalDateTime.now());
-                incidentService.updateIncident(synced);
-                pulledFromServer++;
-                continue;
-            }
-
-            if (local != null && server == null) {
-                unchanged++;
-                continue;
-            }
-
-            if (local == null || server == null) {
-                continue;
-            }
-
-            if (areEquivalent(local, server)) {
-                Incident synced = withSyncMetadata(local, maxDate(local.lastModified(), server.lastModified()));
-                incidentService.updateIncident(synced);
-                unchanged++;
-                continue;
-            }
-
-            Incident autoMerged = attemptAutoMerge(local, server);
-            if (autoMerged != null) {
-                Incident synced = withSyncMetadata(autoMerged, LocalDateTime.now());
-                incidentService.updateIncident(synced);
-
-                if (synced.adminResponseMessage() != null && !synced.adminResponseMessage().isBlank() &&
-                        (server.adminResponseMessage() == null || server.adminResponseMessage().isBlank())) {
-                    pushAdminResponseToBackend(synced.id(), synced.adminResponseMessage());
-                    pushedToServer++;
-                } else {
-                    pulledFromServer++;
-                }
-                continue;
-            }
-
-            Incident resolved = conflictResolver.apply(new IncidentConflict(local, server));
-            if (resolved == null) {
-                incidentService.updateIncident(local.withSyncStatus(SyncStatus.CONFLICT));
-                conflictsUnresolved++;
-                continue;
-            }
-
-            Incident synced = withSyncMetadata(resolved, LocalDateTime.now());
-            incidentService.updateIncident(synced);
-
-            if (synced.adminResponseMessage() != null && !synced.adminResponseMessage().isBlank()) {
-                pushAdminResponseToBackend(synced.id(), synced.adminResponseMessage());
-            }
-            conflictsResolved++;
+            IncidentSyncMetrics.SyncOutcome outcome = syncIncidentPairWithBackend(local, server, conflictResolver);
+            metrics.record(outcome);
         }
 
-        return new IncidentSyncReport(
-                pushedToServer,
-                pulledFromServer,
-                conflictsResolved,
-                conflictsUnresolved,
-                unchanged
-        );
-    }
-
-    private void pushAdminResponseToBackend(String id, String message) {
-        try {
-            String url = configProvider.getAuthBaseUrl() + "/admin/reports/" + id + "/response";
-
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode body = mapper.createObjectNode();
-            body.put("message", message);
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
-
-            HttpResponse<String> response = authenticatedHttpClient.send(request);
-
-            if (response.statusCode() != 200 && response.statusCode() != 201) {
-                DailyLogger.logError("Sync", "Failed to push response for report " + id + ": " + response.body());
-            } else {
-                DailyLogger.logInfo("Sync", "Successfully pushed admin response for report " + id);
-            }
-        } catch (Exception e) {
-            DailyLogger.logError("Sync", "Error pushing admin response", e);
-        }
+        return metrics.toReport();
     }
 
     public IncidentSyncReport sync(Path serverDatabasePath, Function<IncidentConflict, Incident> conflictResolver) {
@@ -172,163 +85,203 @@ public class IncidentSyncManager {
 
         Map<String, Incident> localById = toMapById(incidentService.getAllIncidents());
 
-        try (Connection localConnection = databaseConfig.getConnection();
-             Connection serverConnection = openConnection(serverDatabasePath)) {
-            ensureUsersTable(localConnection);
-            ensureIncidentsTable(serverConnection);
-            ensureUsersTable(serverConnection);
+        try (Connection localConnection = sqliteGateway.openLocalConnection();
+             Connection serverConnection = sqliteGateway.openServerConnection(serverDatabasePath)) {
 
-            syncUsers(localConnection, serverConnection);
+            sqliteGateway.ensureSyncSchema(localConnection, serverConnection);
+            Map<String, Incident> serverById = sqliteGateway.loadIncidentsById(serverConnection);
+            IncidentSyncMetrics metrics = new IncidentSyncMetrics();
 
-            Map<String, Incident> serverById = loadServerIncidents(serverConnection);
-
-            int pushedToServer = 0;
-            int pulledFromServer = 0;
-            int conflictsResolved = 0;
-            int conflictsUnresolved = 0;
-            int unchanged = 0;
-
-            Set<String> allIds = new TreeSet<>();
-            allIds.addAll(localById.keySet());
-            allIds.addAll(serverById.keySet());
-
-            for (String id : allIds) {
+            for (String id : collectAllIds(localById, serverById)) {
                 Incident local = localById.get(id);
                 Incident server = serverById.get(id);
-
-                if (local == null && server != null) {
-                    Incident synced = withSyncMetadata(server, LocalDateTime.now());
-                    incidentService.updateIncident(synced);
-                    pulledFromServer++;
-                    continue;
-                }
-
-                if (local != null && server == null) {
-                    Incident synced = withSyncMetadata(local, LocalDateTime.now());
-                    incidentService.updateIncident(synced);
-                    upsertIncident(serverConnection, synced);
-                    pushedToServer++;
-                    continue;
-                }
-
-                if (local == null) {
-                    continue;
-                }
-
-                if (server == null) {
-                    continue;
-                }
-
-                if (areEquivalent(local, server)) {
-                    Incident synced = withSyncMetadata(local, maxDate(local.lastModified(), server.lastModified()));
-                    incidentService.updateIncident(synced);
-                    upsertIncident(serverConnection, synced);
-                    unchanged++;
-                    continue;
-                }
-
-                Incident autoMerged = attemptAutoMerge(local, server);
-                if (autoMerged != null) {
-                    Incident synced = withSyncMetadata(autoMerged, LocalDateTime.now());
-                    incidentService.updateIncident(synced);
-                    upsertIncident(serverConnection, synced);
-                    pulledFromServer++;
-                    continue;
-                }
-
-                Incident resolved = conflictResolver.apply(new IncidentConflict(local, server));
-                if (resolved == null) {
-                    incidentService.updateIncident(local.withSyncStatus(SyncStatus.CONFLICT));
-                    conflictsUnresolved++;
-                    continue;
-                }
-
-                Incident synced = withSyncMetadata(resolved, LocalDateTime.now());
-                incidentService.updateIncident(synced);
-                upsertIncident(serverConnection, synced);
-                conflictsResolved++;
+                IncidentSyncMetrics.SyncOutcome outcome = syncIncidentPairWithDatabase(serverConnection, local, server, conflictResolver);
+                metrics.record(outcome);
             }
 
-            return new IncidentSyncReport(
-                    pushedToServer,
-                    pulledFromServer,
-                    conflictsResolved,
-                    conflictsUnresolved,
-                    unchanged
-            );
+            return metrics.toReport();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to synchronize reports", e);
         }
     }
 
+        private IncidentSyncMetrics.SyncOutcome syncIncidentPairWithBackend(
+            Incident local,
+            Incident server,
+            Function<IncidentConflict, Incident> conflictResolver
+    ) {
+        if (local == null && server != null) {
+            incidentService.updateIncident(withSyncMetadata(server, LocalDateTime.now()));
+            return IncidentSyncMetrics.SyncOutcome.PULLED;
+        }
+
+        if (local != null && server == null) {
+            return IncidentSyncMetrics.SyncOutcome.UNCHANGED;
+        }
+
+        if (local == null || server == null) {
+            return IncidentSyncMetrics.SyncOutcome.SKIPPED;
+        }
+
+        if (areEquivalent(local, server)) {
+            Incident synced = withSyncMetadata(local, maxDate(local.lastModified(), server.lastModified()));
+            incidentService.updateIncident(synced);
+            return IncidentSyncMetrics.SyncOutcome.UNCHANGED;
+        }
+
+        Incident autoMerged = attemptAutoMerge(local, server);
+        if (autoMerged != null) {
+            Incident synced = withSyncMetadata(autoMerged, LocalDateTime.now());
+            incidentService.updateIncident(synced);
+
+            if (shouldPushAdminResponseAfterAutoMerge(synced, server)) {
+                backendGateway.pushAdminResponse(synced.id(), synced.adminResponseMessage());
+                return IncidentSyncMetrics.SyncOutcome.PUSHED;
+            }
+            return IncidentSyncMetrics.SyncOutcome.PULLED;
+        }
+
+        Incident resolved = conflictResolver.apply(new IncidentConflict(local, server));
+        if (resolved == null) {
+            incidentService.updateIncident(local.withSyncStatus(SyncStatus.CONFLICT));
+            return IncidentSyncMetrics.SyncOutcome.CONFLICT_UNRESOLVED;
+        }
+
+        Incident synced = withSyncMetadata(resolved, LocalDateTime.now());
+        incidentService.updateIncident(synced);
+        if (hasAdminResponse(synced)) {
+            backendGateway.pushAdminResponse(synced.id(), synced.adminResponseMessage());
+        }
+        return IncidentSyncMetrics.SyncOutcome.CONFLICT_RESOLVED;
+    }
+
+    private IncidentSyncMetrics.SyncOutcome syncIncidentPairWithDatabase(
+            Connection serverConnection,
+            Incident local,
+            Incident server,
+            Function<IncidentConflict, Incident> conflictResolver
+    ) throws SQLException {
+        if (local == null && server != null) {
+            incidentService.updateIncident(withSyncMetadata(server, LocalDateTime.now()));
+            return IncidentSyncMetrics.SyncOutcome.PULLED;
+        }
+
+        if (local != null && server == null) {
+            Incident synced = withSyncMetadata(local, LocalDateTime.now());
+            incidentService.updateIncident(synced);
+            sqliteGateway.upsertIncident(serverConnection, synced);
+            return IncidentSyncMetrics.SyncOutcome.PUSHED;
+        }
+
+        if (local == null || server == null) {
+            return IncidentSyncMetrics.SyncOutcome.SKIPPED;
+        }
+
+        if (areEquivalent(local, server)) {
+            Incident synced = withSyncMetadata(local, maxDate(local.lastModified(), server.lastModified()));
+            incidentService.updateIncident(synced);
+            sqliteGateway.upsertIncident(serverConnection, synced);
+            return IncidentSyncMetrics.SyncOutcome.UNCHANGED;
+        }
+
+        Incident autoMerged = attemptAutoMerge(local, server);
+        if (autoMerged != null) {
+            Incident synced = withSyncMetadata(autoMerged, LocalDateTime.now());
+            incidentService.updateIncident(synced);
+            sqliteGateway.upsertIncident(serverConnection, synced);
+            return IncidentSyncMetrics.SyncOutcome.PULLED;
+        }
+
+        Incident resolved = conflictResolver.apply(new IncidentConflict(local, server));
+        if (resolved == null) {
+            incidentService.updateIncident(local.withSyncStatus(SyncStatus.CONFLICT));
+            return IncidentSyncMetrics.SyncOutcome.CONFLICT_UNRESOLVED;
+        }
+
+        Incident synced = withSyncMetadata(resolved, LocalDateTime.now());
+        incidentService.updateIncident(synced);
+        sqliteGateway.upsertIncident(serverConnection, synced);
+        return IncidentSyncMetrics.SyncOutcome.CONFLICT_RESOLVED;
+    }
+
+    private Set<String> collectAllIds(Map<String, Incident> localById, Map<String, Incident> remoteById) {
+        Set<String> allIds = new TreeSet<>();
+        allIds.addAll(localById.keySet());
+        allIds.addAll(remoteById.keySet());
+        return allIds;
+    }
+
+    private boolean hasAdminResponse(Incident incident) {
+        return incident != null
+                && incident.adminResponseMessage() != null
+                && !incident.adminResponseMessage().isBlank();
+    }
+
+    private boolean shouldPushAdminResponseAfterAutoMerge(Incident merged, Incident originalServer) {
+        return hasAdminResponse(merged)
+                && (originalServer == null
+                || originalServer.adminResponseMessage() == null
+                || originalServer.adminResponseMessage().isBlank());
+    }
+
     private Incident attemptAutoMerge(Incident local, Incident server) {
         String title = mergeString(local.title(), server.title());
-        if ("___CONFLICT___".equals(title)) return null;
+        if (isMergeConflict(title)) {
+            return null;
+        }
 
         String description = mergeString(local.description(), server.description());
-        if ("___CONFLICT___".equals(description)) return null;
+        if (isMergeConflict(description)) {
+            return null;
+        }
 
         IncidentCategory category = mergeGeneric(local.category(), server.category());
-        if (category == null && (local.category() != null || server.category() != null)) return null;
+        if (category == null && (local.category() != null || server.category() != null)) {
+            return null;
+        }
 
         IncidentStatus status = mergeGeneric(local.status(), server.status());
-        if (status == null && (local.status() != null || server.status() != null)) return null;
+        if (status == null && (local.status() != null || server.status() != null)) {
+            return null;
+        }
 
         String reportedByUserId = mergeString(local.reportedByUserId(), server.reportedByUserId());
-        if ("___CONFLICT___".equals(reportedByUserId)) return null;
+        if (isMergeConflict(reportedByUserId)) {
+            return null;
+        }
 
-        String reportedBy = server.reportedBy() != null && !server.reportedBy().isBlank() ? server.reportedBy() : local.reportedBy();
+        String reportedBy = server.reportedBy() != null && !server.reportedBy().isBlank()
+                ? server.reportedBy()
+                : local.reportedBy();
 
         String adminResponse = mergeString(local.adminResponseMessage(), server.adminResponseMessage());
-        if ("___CONFLICT___".equals(adminResponse)) return null;
+        if (isMergeConflict(adminResponse)) {
+            return null;
+        }
 
         LocalDateTime reportedAt = server.reportedAt() != null ? server.reportedAt() : local.reportedAt();
         LocalDateTime resolvedAt = server.resolvedAt() != null ? server.resolvedAt() : local.resolvedAt();
 
         return new Incident(
-                local.id(), title, description, category, status,
-                reportedByUserId, reportedBy, adminResponse,
-                reportedAt, resolvedAt, maxDate(local.lastModified(), server.lastModified()), SyncStatus.SYNCED
+                local.id(),
+                title,
+                description,
+                category,
+                status,
+                reportedByUserId,
+                reportedBy,
+                adminResponse,
+                reportedAt,
+                resolvedAt,
+                maxDate(local.lastModified(), server.lastModified()),
+                SyncStatus.SYNCED
         );
     }
 
-    private void upsertIncident(Connection conn, Incident incident) throws SQLException {
-        String sql = """
-            INSERT INTO %s (id, title, description, category, status, reported_by_user_id, reported_by, admin_response_message, reported_at, resolved_at, last_modified, sync_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                title = excluded.title,
-                description = excluded.description,
-                category = excluded.category,
-                status = excluded.status,
-                reported_by_user_id = excluded.reported_by_user_id,
-                reported_by = excluded.reported_by,
-                admin_response_message = excluded.admin_response_message,
-                reported_at = excluded.reported_at,
-                resolved_at = excluded.resolved_at,
-                last_modified = excluded.last_modified,
-                sync_status = excluded.sync_status
-            """.formatted(REPORTS_TABLE);
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, incident.id());
-            stmt.setString(2, incident.title());
-            stmt.setString(3, incident.description());
-            stmt.setString(4, incident.category() == null ? null : incident.category().name());
-            stmt.setString(5, incident.status() == null ? null : incident.status().name());
-            stmt.setString(6, incident.reportedByUserId());
-            stmt.setString(7, incident.reportedBy());
-            stmt.setString(8, incident.adminResponseMessage());
-            stmt.setTimestamp(9, toTimestamp(incident.reportedAt()));
-            stmt.setTimestamp(10, toTimestamp(incident.resolvedAt()));
-            stmt.setTimestamp(11, toTimestamp(incident.lastModified()));
-            stmt.setString(12, incident.syncStatus() == null ? null : incident.syncStatus().name());
-            stmt.executeUpdate();
-        }
-    }
-
     private boolean areEquivalent(Incident first, Incident second) {
-        if (first == null || second == null) return false;
+        if (first == null || second == null) {
+            return false;
+        }
         return Objects.equals(first.id(), second.id())
                 && stringsEquivalent(first.title(), second.title())
                 && stringsEquivalent(first.description(), second.description())
@@ -338,27 +291,10 @@ public class IncidentSyncManager {
                 && stringsEquivalent(first.reportedByUserId(), second.reportedByUserId());
     }
 
-    private boolean stringsEquivalent(String a, String b) {
-        String valA = a == null ? "" : a.trim();
-        String valB = b == null ? "" : b.trim();
+    private boolean stringsEquivalent(String first, String second) {
+        String valA = first == null ? "" : first.trim();
+        String valB = second == null ? "" : second.trim();
         return valA.equals(valB);
-    }
-
-    private Incident mapRow(ResultSet rs) throws SQLException {
-        return new Incident(
-                rs.getString("id"),
-                rs.getString("title"),
-                rs.getString("description"),
-                parseEnum(IncidentCategory.class, rs.getString("category")),
-                parseEnum(IncidentStatus.class, rs.getString("status")),
-                rs.getString("reported_by_user_id"),
-                rs.getString("reported_by"),
-                rs.getString("admin_response_message"),
-                parseDbDate(rs.getString("reported_at")),
-                parseDbDate(rs.getString("resolved_at")),
-                parseDbDate(rs.getString("last_modified")),
-                parseEnum(SyncStatus.class, rs.getString("sync_status"))
-        );
     }
 
     private String mergeString(String localVal, String serverVal) {
@@ -367,16 +303,32 @@ public class IncidentSyncManager {
         }
         boolean localEmpty = localVal == null || localVal.isBlank();
         boolean serverEmpty = serverVal == null || serverVal.isBlank();
-        if (localEmpty) return serverVal;
-        if (serverEmpty) return localVal;
-        return "___CONFLICT___";
+        if (localEmpty) {
+            return serverVal;
+        }
+        if (serverEmpty) {
+            return localVal;
+        }
+        return MERGE_CONFLICT_SENTINEL;
+    }
+
+    private boolean isMergeConflict(String value) {
+        return MERGE_CONFLICT_SENTINEL.equals(value);
     }
 
     private <T> T mergeGeneric(T localVal, T serverVal) {
-        if (localVal == null && serverVal == null) return null;
-        if (localVal == null) return serverVal;
-        if (serverVal == null) return localVal;
-        if (localVal.equals(serverVal)) return localVal;
+        if (localVal == null && serverVal == null) {
+            return null;
+        }
+        if (localVal == null) {
+            return serverVal;
+        }
+        if (serverVal == null) {
+            return localVal;
+        }
+        if (localVal.equals(serverVal)) {
+            return localVal;
+        }
         return null;
     }
 
@@ -388,435 +340,6 @@ public class IncidentSyncManager {
             }
         }
         return byId;
-    }
-
-    private List<Incident> fetchServerIncidentsFromBackend() {
-        String rawUrl = configProvider.getSyncDatabaseUrl();
-        if (rawUrl == null || rawUrl.isBlank()) {
-            throw new RuntimeException("Missing app.sync.db.url in application.properties");
-        }
-
-        String jdbcUrl = toJdbcPostgresUrl(rawUrl);
-        DailyLogger.logInfo("Sync", "Fetching reports from direct DB: " + jdbcUrl.replaceAll("://([^:]+):([^@]+)@", "://$1:***@"));
-
-        try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
-            logDatabaseIdentity(conn);
-            logKeyTableCounts(conn);
-            String table = resolveIncidentTable(conn);
-            logRlsStatus(conn, table);
-            String sql = "SELECT * FROM " + table;
-
-            java.util.ArrayList<Incident> result = new java.util.ArrayList<>();
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                ResultSetMetaData meta = rs.getMetaData();
-                while (rs.next()) {
-                    result.add(mapIncidentRow(rs, meta));
-                }
-            }
-
-            DailyLogger.logInfo("Sync", "Fetched " + result.size() + " reports from table " + table);
-            return result;
-        } catch (SQLException e) {
-            Throwable cause = e.getCause();
-            String root = cause == null ? "" : " cause=" + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage());
-            DailyLogger.logError("Sync", "Failed to fetch reports from direct DB: sqlState=" + e.getSQLState() + " errorCode=" + e.getErrorCode() + " message=" + e.getMessage() + root, e);
-            throw new RuntimeException("Failed to fetch reports from direct DB", e);
-        }
-    }
-
-    private String toJdbcPostgresUrl(String rawUrl) {
-        String trimmed = rawUrl.trim();
-        if (trimmed.startsWith("jdbc:postgresql://")) {
-            return trimmed;
-        }
-        if (trimmed.startsWith("postgresql://") || trimmed.startsWith("postgres://")) {
-            String normalized = trimmed.startsWith("postgres://")
-                    ? "postgresql://" + trimmed.substring("postgres://".length())
-                    : trimmed;
-
-            URI uri = URI.create(normalized);
-            String host = uri.getHost();
-            int port = uri.getPort() == -1 ? 5432 : uri.getPort();
-            String db = uri.getPath() == null ? "" : uri.getPath().replaceFirst("^/", "");
-
-            StringBuilder jdbc = new StringBuilder("jdbc:postgresql://")
-                    .append(host)
-                    .append(":")
-                    .append(port)
-                    .append("/")
-                    .append(db);
-
-            StringBuilder params = new StringBuilder();
-            if (uri.getRawQuery() != null && !uri.getRawQuery().isBlank()) {
-                params.append(uri.getRawQuery());
-            }
-
-            String userInfo = uri.getUserInfo();
-            if (userInfo != null && !userInfo.isBlank()) {
-                String[] parts = userInfo.split(":", 2);
-                String user = parts.length > 0 ? parts[0] : "";
-                String pass = parts.length > 1 ? parts[1] : "";
-                if (!user.isBlank()) {
-                    if (params.length() > 0) params.append("&");
-                    params.append("user=").append(URLEncoder.encode(user, StandardCharsets.UTF_8));
-                }
-                if (!pass.isBlank()) {
-                    if (params.length() > 0) params.append("&");
-                    params.append("password=").append(URLEncoder.encode(pass, StandardCharsets.UTF_8));
-                }
-            }
-
-            if (params.length() > 0) {
-                jdbc.append("?").append(params);
-            }
-            return jdbc.toString();
-        }
-        return trimmed;
-    }
-
-    private String resolveIncidentTable(Connection conn) throws SQLException {
-        String configuredTable = configProvider.getSyncDatabaseTable();
-        String[] targetNames = (configuredTable != null && !configuredTable.isBlank())
-                ? new String[] {configuredTable}
-                : new String[] {"reports", "incidents", "incident_reports"};
-        TableCandidate best = null;
-
-        String sql = """
-            SELECT table_schema, table_name
-            FROM information_schema.tables
-            WHERE table_name = ?
-              AND table_schema NOT IN ('pg_catalog', 'information_schema')
-            ORDER BY CASE WHEN table_schema = 'public' THEN 0 ELSE 1 END, table_schema
-            """;
-
-        for (String targetName : targetNames) {
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, targetName);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        String schema = rs.getString("table_schema");
-                        String table = rs.getString("table_name");
-                        long count = countRows(conn, schema, table);
-                        DailyLogger.logInfo("Sync", "Table candidate " + schema + "." + table + " has " + count + " row(s)");
-
-                        if (best == null || count > best.rowCount) {
-                            best = new TableCandidate(schema, table, count);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (best != null) {
-            return quoteIdent(best.schema) + "." + quoteIdent(best.table);
-        }
-
-        if (configuredTable == null || configuredTable.isBlank()) {
-            DailyLogger.logWarn(
-                    "Sync",
-                    "No reports table found (reports/incidents/incident_reports). Set app.sync.db.table in application.properties if you want another source table."
-            );
-        }
-
-        String available = String.join(", ", listBusinessTables(conn));
-        throw new SQLException(
-                "No compatible table found (expected reports, incidents or incident_reports"
-                        + ((configuredTable != null && !configuredTable.isBlank()) ? ", or configured table '" + configuredTable + "'" : "")
-                        + "). Available tables: "
-                        + available
-        );
-    }
-
-    private void logDatabaseIdentity(Connection conn) {
-        String sql = "SELECT current_database() AS db, current_user AS usr, current_schema() AS schema";
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) {
-                DailyLogger.logInfo(
-                        "Sync",
-                        "Connected as user='" + rs.getString("usr")
-                                + "' db='" + rs.getString("db")
-                                + "' schema='" + rs.getString("schema") + "'"
-                );
-            }
-        } catch (SQLException e) {
-            DailyLogger.logWarn("Sync", "Unable to read DB identity: " + e.getMessage());
-        }
-    }
-
-    private void logKeyTableCounts(Connection conn) {
-        String sql = """
-            SELECT table_schema, table_name
-            FROM information_schema.tables
-            WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-                            AND table_name IN ('users', 'moderators', 'admins', 'reports', 'incidents', 'incident_reports')
-            ORDER BY table_schema, table_name
-            """;
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                String schema = rs.getString("table_schema");
-                String table = rs.getString("table_name");
-                long count = countRows(conn, schema, table);
-                DailyLogger.logInfo("Sync", "Key table " + schema + "." + table + " count=" + count);
-            }
-        } catch (SQLException e) {
-            DailyLogger.logWarn("Sync", "Unable to log key table counts: " + e.getMessage());
-        }
-    }
-
-    private void logRlsStatus(Connection conn, String qualifiedTable) {
-        String cleaned = qualifiedTable.replace("\"", "");
-        String[] parts = cleaned.split("\\.", 2);
-        if (parts.length != 2) {
-            return;
-        }
-
-        String sql = """
-            SELECT c.relrowsecurity
-            FROM pg_class c
-            JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE n.nspname = ? AND c.relname = ?
-            """;
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, parts[0]);
-            ps.setString(2, parts[1]);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    DailyLogger.logInfo("Sync", "RLS enabled on " + cleaned + " = " + rs.getBoolean("relrowsecurity"));
-                }
-            }
-        } catch (SQLException e) {
-            DailyLogger.logWarn("Sync", "Unable to check RLS for " + cleaned + ": " + e.getMessage());
-        }
-    }
-
-    private long countRows(Connection conn, String schema, String table) {
-        String sql = "SELECT COUNT(*) FROM " + quoteIdent(schema) + "." + quoteIdent(table);
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
-            return rs.next() ? rs.getLong(1) : 0;
-        } catch (SQLException e) {
-            DailyLogger.logWarn("Sync", "Unable to count rows for " + schema + "." + table + ": " + e.getMessage());
-            return 0;
-        }
-    }
-
-    private String quoteIdent(String identifier) {
-        return '"' + identifier.replace("\"", "\"\"") + '"';
-    }
-
-    private static final class TableCandidate {
-        private final String schema;
-        private final String table;
-        private final long rowCount;
-
-        private TableCandidate(String schema, String table, long rowCount) {
-            this.schema = schema;
-            this.table = table;
-            this.rowCount = rowCount;
-        }
-    }
-
-    private java.util.List<String> listBusinessTables(Connection conn) throws SQLException {
-        String sql = """
-            SELECT table_schema || '.' || table_name AS full_table
-            FROM information_schema.tables
-            WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-            ORDER BY table_schema, table_name
-            """;
-
-        java.util.ArrayList<String> tables = new java.util.ArrayList<>();
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                tables.add(rs.getString("full_table"));
-            }
-        }
-        return tables;
-    }
-
-    private Incident mapIncidentRow(ResultSet rs, ResultSetMetaData meta) throws SQLException {
-        String descriptionCol = hasColumn(meta, "content") ? "content" : (hasColumn(meta, "description") ? "description" : null);
-        String reportedByUserIdCol = hasColumn(meta, "user_id") ? "user_id" : (hasColumn(meta, "reported_by_user_id") ? "reported_by_user_id" : null);
-        String categoryCol = hasColumn(meta, "theme") ? "theme" : (hasColumn(meta, "category") ? "category" : null);
-        String reportedByCol = hasColumn(meta, "reported_by") ? "reported_by" : null;
-        String adminResponseCol = hasColumn(meta, "admin_response_message") ? "admin_response_message" : null;
-
-        String title = getStringIfPresent(rs, meta, "title");
-
-        return new Incident(
-                getStringIfPresent(rs, meta, "id"),
-                title,
-                descriptionCol == null ? null : rs.getString(descriptionCol),
-                parseEnum(IncidentCategory.class, categoryCol == null ? null : rs.getString(categoryCol)),
-                parseEnum(IncidentStatus.class, getStringIfPresent(rs, meta, "status")),
-                reportedByUserIdCol == null ? null : rs.getString(reportedByUserIdCol),
-                reportedByCol == null ? null : rs.getString(reportedByCol),
-                adminResponseCol == null ? null : rs.getString(adminResponseCol),
-                getDateTimeWithFallback(rs, meta, "created_at", "reported_at"),
-                getDateTimeWithFallback(rs, meta, "responded_at", "resolved_at"),
-                getDateTimeWithFallback(rs, meta, "updated_at", "last_modified"),
-                parseEnum(SyncStatus.class, getStringIfPresent(rs, meta, "sync_status"))
-        );
-    }
-
-    private boolean hasColumn(ResultSetMetaData meta, String columnName) throws SQLException {
-        for (int i = 1; i <= meta.getColumnCount(); i++) {
-            if (columnName.equalsIgnoreCase(meta.getColumnName(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private String getStringIfPresent(ResultSet rs, ResultSetMetaData meta, String column) throws SQLException {
-        return hasColumn(meta, column) ? rs.getString(column) : null;
-    }
-
-    private LocalDateTime getDateTimeIfPresent(ResultSet rs, ResultSetMetaData meta, String column) throws SQLException {
-        if (!hasColumn(meta, column)) {
-            return null;
-        }
-
-        Object raw = rs.getObject(column);
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof LocalDateTime ldt) {
-            return normalizeDateTime(ldt);
-        }
-        if (raw instanceof OffsetDateTime odt) {
-            return normalizeDateTime(odt.toLocalDateTime());
-        }
-        if (raw instanceof Timestamp ts) {
-            return normalizeDateTime(ts.toLocalDateTime());
-        }
-        if (raw instanceof String s) {
-            return normalizeDateTime(parseDbDate(s));
-        }
-
-        Timestamp ts = rs.getTimestamp(column);
-        return ts == null ? null : normalizeDateTime(ts.toLocalDateTime());
-    }
-
-    private LocalDateTime getDateTimeWithFallback(
-            ResultSet rs,
-            ResultSetMetaData meta,
-            String preferred,
-            String fallback
-    ) throws SQLException {
-        LocalDateTime value = getDateTimeIfPresent(rs, meta, preferred);
-        if (value != null) {
-            return value;
-        }
-        return getDateTimeIfPresent(rs, meta, fallback);
-    }
-
-    private Connection openConnection(Path databasePath) throws SQLException {
-        String pathStr = databasePath.toAbsolutePath().toString().replace('\\', '/');
-        if (!pathStr.startsWith("/")) {
-            pathStr = "/" + pathStr;
-        }
-        return DriverManager.getConnection("jdbc:sqlite:" + pathStr);
-    }
-
-    private void ensureIncidentsTable(Connection conn) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            String createReportsSql = """
-                CREATE TABLE IF NOT EXISTS %s (
-                    id VARCHAR(36) PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    description CLOB,
-                    category VARCHAR(50),
-                    status VARCHAR(50),
-                    reported_by_user_id VARCHAR(36),
-                    reported_by VARCHAR(255),
-                    admin_response_message CLOB,
-                    reported_at TIMESTAMP,
-                    resolved_at TIMESTAMP,
-                    last_modified TIMESTAMP,
-                    sync_status VARCHAR(50)
-                )
-            """.formatted(REPORTS_TABLE);
-            stmt.execute(createReportsSql);
-
-            String createLegacyIncidentsSql = """
-                CREATE TABLE IF NOT EXISTS %s (
-                    id VARCHAR(36) PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    description CLOB,
-                    category VARCHAR(50),
-                    status VARCHAR(50),
-                    reported_by_user_id VARCHAR(36),
-                    reported_by VARCHAR(255),
-                    admin_response_message CLOB,
-                    reported_at TIMESTAMP,
-                    resolved_at TIMESTAMP,
-                    last_modified TIMESTAMP,
-                    sync_status VARCHAR(50)
-                )
-            """.formatted(LEGACY_INCIDENTS_TABLE);
-            stmt.execute(createLegacyIncidentsSql);
-
-            if (!hasColumn(conn, REPORTS_TABLE, "reported_by_user_id")) {
-                stmt.execute("ALTER TABLE " + REPORTS_TABLE + " ADD COLUMN reported_by_user_id VARCHAR(36)");
-            }
-
-            String migrateLegacySql = """
-                INSERT INTO %s (id, title, description, category, status, reported_by_user_id, reported_by, admin_response_message, reported_at, resolved_at, last_modified, sync_status)
-                SELECT i.id, i.title, i.description, i.category, i.status, i.reported_by_user_id, i.reported_by, i.admin_response_message, i.reported_at, i.resolved_at, i.last_modified, i.sync_status
-                FROM %s i
-                WHERE NOT EXISTS (SELECT 1 FROM %s r WHERE r.id = i.id)
-            """.formatted(REPORTS_TABLE, LEGACY_INCIDENTS_TABLE, REPORTS_TABLE);
-            stmt.execute(migrateLegacySql);
-        }
-    }
-
-    private void ensureUsersTable(Connection conn) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id VARCHAR(36) PRIMARY KEY,
-                    email VARCHAR(255),
-                    firstname VARCHAR(255),
-                    lastname VARCHAR(255),
-                    created_at TIMESTAMP,
-                    updated_at TIMESTAMP,
-                    last_modified TIMESTAMP,
-                    sync_status VARCHAR(50)
-                )
-            """);
-
-            if (!hasColumn(conn, "users", "last_modified")) {
-                stmt.execute("ALTER TABLE users ADD COLUMN last_modified TIMESTAMP");
-            }
-            if (!hasColumn(conn, "users", "sync_status")) {
-                stmt.execute("ALTER TABLE users ADD COLUMN sync_status VARCHAR(50)");
-            }
-        }
-    }
-
-    private boolean hasColumn(Connection conn, String tableName, String columnName) throws SQLException {
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tableName + ")")) {
-            while (rs.next()) {
-                if (columnName.equalsIgnoreCase(rs.getString("name"))) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private Map<String, Incident> loadServerIncidents(Connection conn) throws SQLException {
-        Map<String, Incident> incidents = new HashMap<>();
-        String sql = "SELECT * FROM " + REPORTS_TABLE;
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                Incident incident = mapRow(rs);
-                incidents.put(incident.id(), incident);
-            }
-        }
-        return incidents;
     }
 
     private Incident withSyncMetadata(Incident incident, LocalDateTime syncTime) {
@@ -836,200 +359,14 @@ public class IncidentSyncManager {
         );
     }
 
-    private LocalDateTime maxDate(LocalDateTime a, LocalDateTime b) {
-        if (a == null) {
-            return b == null ? LocalDateTime.now() : b;
+    private LocalDateTime maxDate(LocalDateTime first, LocalDateTime second) {
+        if (first == null) {
+            return second == null ? LocalDateTime.now() : second;
         }
-        if (b == null) {
-            return a;
+        if (second == null) {
+            return first;
         }
-        return a.isAfter(b) ? a : b;
+        return first.isAfter(second) ? first : second;
     }
 
-    private LocalDateTime normalizeDateTime(LocalDateTime value) {
-        return value == null ? null : value.truncatedTo(ChronoUnit.SECONDS);
-    }
-
-    private void syncUsers(Connection localConnection, Connection serverConnection) throws SQLException {
-        Map<String, UserRow> localUsers = loadUsers(localConnection);
-        Map<String, UserRow> serverUsers = loadUsers(serverConnection);
-
-        Set<String> allIds = new TreeSet<>();
-        allIds.addAll(localUsers.keySet());
-        allIds.addAll(serverUsers.keySet());
-
-        for (String id : allIds) {
-            UserRow local = localUsers.get(id);
-            UserRow server = serverUsers.get(id);
-
-            if (local == null && server != null) {
-                UserRow synced = server.withSync(LocalDateTime.now());
-                upsertUser(localConnection, synced);
-                continue;
-            }
-
-            if (local != null && server == null) {
-                UserRow synced = local.withSync(LocalDateTime.now());
-                upsertUser(serverConnection, synced);
-                continue;
-            }
-
-            if (local == null) {
-                continue;
-            }
-
-            if (server == null) {
-                continue;
-            }
-
-            if (usersEquivalent(local, server)) {
-                LocalDateTime merged = maxDate(local.lastModified(), server.lastModified());
-                upsertUser(localConnection, local.withSync(merged));
-                upsertUser(serverConnection, server.withSync(merged));
-                continue;
-            }
-
-            UserRow winner = preferMostRecent(local, server);
-            UserRow synced = winner.withSync(LocalDateTime.now());
-            upsertUser(localConnection, synced);
-            upsertUser(serverConnection, synced);
-        }
-    }
-
-    private Map<String, UserRow> loadUsers(Connection conn) throws SQLException {
-        Map<String, UserRow> users = new HashMap<>();
-        String sql = "SELECT * FROM users";
-
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                UserRow user = new UserRow(
-                        rs.getString("id"),
-                        rs.getString("email"),
-                        rs.getString("firstname"),
-                        rs.getString("lastname"),
-                        parseDbDate(rs.getString("created_at")),
-                        parseDbDate(rs.getString("updated_at")),
-                        parseDbDate(rs.getString("last_modified")),
-                        parseEnum(SyncStatus.class, rs.getString("sync_status"))
-                );
-
-                if (user.id() != null && !user.id().isBlank()) {
-                    users.put(user.id(), user);
-                }
-            }
-        }
-
-        return users;
-    }
-
-    private void upsertUser(Connection conn, UserRow user) throws SQLException {
-        String sql = """
-            INSERT INTO users (id, email, firstname, lastname, created_at, updated_at, last_modified, sync_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                email = excluded.email,
-                firstname = excluded.firstname,
-                lastname = excluded.lastname,
-                created_at = excluded.created_at,
-                updated_at = excluded.updated_at,
-                last_modified = excluded.last_modified,
-                sync_status = excluded.sync_status
-        """;
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, user.id());
-            stmt.setString(2, user.email());
-            stmt.setString(3, user.firstname());
-            stmt.setString(4, user.lastname());
-            stmt.setTimestamp(5, toTimestamp(user.createdAt()));
-            stmt.setTimestamp(6, toTimestamp(user.updatedAt()));
-            stmt.setTimestamp(7, toTimestamp(user.lastModified()));
-            stmt.setString(8, user.syncStatus() == null ? null : user.syncStatus().name());
-            stmt.executeUpdate();
-        }
-    }
-
-    private boolean usersEquivalent(UserRow first, UserRow second) {
-        if (first == null || second == null) {
-            return false;
-        }
-
-        return Objects.equals(first.id(), second.id())
-                && Objects.equals(first.email(), second.email())
-                && Objects.equals(first.firstname(), second.firstname())
-                && Objects.equals(first.lastname(), second.lastname());
-    }
-
-    private UserRow preferMostRecent(UserRow local, UserRow server) {
-        LocalDateTime localTs = local.lastModified();
-        LocalDateTime serverTs = server.lastModified();
-
-        if (localTs == null && serverTs == null) {
-            return local;
-        }
-        if (localTs == null) {
-            return server;
-        }
-        if (serverTs == null) {
-            return local;
-        }
-        return serverTs.isAfter(localTs) ? server : local;
-    }
-
-    private record UserRow(
-            String id,
-            String email,
-            String firstname,
-            String lastname,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt,
-            LocalDateTime lastModified,
-            SyncStatus syncStatus
-    ) {
-        UserRow withSync(LocalDateTime syncTime) {
-            return new UserRow(
-                    id,
-                    email,
-                    firstname,
-                    lastname,
-                    createdAt,
-                    updatedAt,
-                    syncTime,
-                    SyncStatus.SYNCED
-            );
-        }
-    }
-
-    private Timestamp toTimestamp(LocalDateTime ldt) {
-        return ldt == null ? null : Timestamp.valueOf(ldt);
-    }
-
-    private LocalDateTime parseDbDate(String dateStr) {
-        if (dateStr == null || dateStr.isBlank()) {
-            return null;
-        }
-        try {
-            if (dateStr.matches("^\\d+$")) {
-                return normalizeDateTime(LocalDateTime.ofInstant(
-                        java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
-                        java.time.ZoneId.systemDefault()
-                ));
-            }
-            String normalized = dateStr.replace(' ', 'T');
-            return normalizeDateTime(LocalDateTime.parse(normalized));
-        } catch (NumberFormatException | java.time.format.DateTimeParseException e) {
-            System.err.println("Error parsing date in sync: " + dateStr + " - " + e.getMessage());
-            return null;
-        }
-    }
-
-    private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value) {
-        if (value == null) return null;
-        try {
-            return Enum.valueOf(enumClass, value.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
 }
