@@ -87,11 +87,6 @@ public class App extends Application {
                 }
             });
 
-            com.app.plugin.impl.DrawingPlugin drawingPlugin = new com.app.plugin.impl.DrawingPlugin();
-            drawingPlugin.onLoad(pluginContext);
-            com.app.plugin.i18n.TranslationPlugin translationPlugin = new com.app.plugin.i18n.TranslationPlugin();
-            translationPlugin.onLoad(pluginContext);
-
             FXMLLoader settingsLoader = new FXMLLoader(App.class.getResource("/com/app/view/SettingsView.fxml"));
             settingsLoader.setResources(bundle);
             settingsLoader.setControllerFactory(param -> new SettingsController(updateService, themeAdapter));
