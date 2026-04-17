@@ -1,6 +1,7 @@
 package com.app.infrastructure.ui;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -8,16 +9,17 @@ import com.app.domain.service.AuthService;
 import com.app.domain.service.PluginService;
 import com.app.domain.service.ThemeService;
 import com.app.domain.service.UpdateService;
+import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
+import com.app.infrastructure.adapter.auth.TokenManager;
 import com.app.infrastructure.adapter.theme.JavaFXThemeAdapter;
 import com.app.infrastructure.util.DailyLogger;
 import com.app.plugin.PluginContext;
-import com.app.infrastructure.adapter.auth.TokenManager;
-import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -128,6 +130,7 @@ public class App extends Application {
 
             stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
             stage.setScene(scene);
+            setStageIcon(stage);
             stage.setOnCloseRequest(e -> {
                 DailyLogger.getInstance().logAppShutdown();
                 AppState.getInstance().shutdown();
@@ -174,6 +177,7 @@ public class App extends Application {
         loginStage.initOwner(owner);
         loginStage.setResizable(false);
         loginStage.setTitle("Connected-Neighbours-Java-App - Login");
+        setStageIcon(loginStage);
 
         FXMLLoader loginLoader = new FXMLLoader(App.class.getResource("/com/app/view/LoginView.fxml"));
         loginLoader.setResources(bundle);
@@ -205,5 +209,14 @@ public class App extends Application {
         loginStage.showAndWait();
 
         return authenticated.get();
+    }
+
+    private void setStageIcon(Stage stage) {
+        URL iconUrl = App.class.getResource("/icon.png");
+        if (iconUrl != null) {
+            stage.getIcons().add(new Image(iconUrl.toExternalForm()));
+        } else {
+            DailyLogger.logWarn("App", "App icon not found at /icon.png");
+        }
     }
 }
