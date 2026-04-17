@@ -1,21 +1,33 @@
 package com.app.domain.service;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import com.app.domain.model.PluginMetadata;
 import com.app.domain.port.out.I18nPort;
 import com.app.domain.port.out.LoggerPort;
 import com.app.domain.port.out.PluginRepository;
 import com.app.plugin.Plugin;
 import com.app.plugin.PluginContext;
+
 import javafx.scene.Node;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.Pane;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.function.Consumer;
-import static org.junit.jupiter.api.Assertions.*;
 
 class PluginServiceTest {
     private PluginService pluginService;
@@ -85,8 +97,20 @@ class PluginServiceTest {
         pluginService.reloadPlugin("test-plugin");
         assertTrue(pluginService.isPluginEnabled("test-plugin"));
     }
+
+    @Test
+    void testInstallPlugin_shouldDelegateToRepository() {
+        File jarFile = new File("my-plugin.jar");
+
+        pluginService.installPlugin(jarFile);
+
+        assertEquals(1, mockRepo.installedPluginFiles.size());
+        assertEquals("my-plugin.jar", mockRepo.installedPluginFiles.get(0).getName());
+    }
+
     private static class MockPluginRepository implements PluginRepository {
         List<String> deletedPlugins = new ArrayList<>();
+        List<File> installedPluginFiles = new ArrayList<>();
         @Override
         public List<PluginMetadata> discoverAndLoadPlugins() {
             return new ArrayList<>(List.of(
@@ -97,6 +121,10 @@ class PluginServiceTest {
         @Override
         public List<PluginMetadata> getInstalledPlugins() {
             return discoverAndLoadPlugins();
+        }
+        @Override
+        public void installPlugin(File jarFile) {
+            installedPluginFiles.add(jarFile);
         }
         @Override
         public Plugin loadPlugin(String pluginId) {
