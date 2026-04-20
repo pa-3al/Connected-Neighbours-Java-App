@@ -1,16 +1,25 @@
 package com.app.infrastructure.ui;
 import com.app.domain.model.PluginMetadata;
 import com.app.domain.port.in.PluginUseCase;
+import com.app.infrastructure.util.KeyboardShortcutsHandler;
+
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
 import java.util.List;
 import java.util.Optional;
+import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 public class PluginController {
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
     private final PluginUseCase pluginUseCase;
+    @FXML private VBox pluginRoot;
     @FXML private FlowPane pluginsContainer;
     @FXML private Label statusLabel;
     @FXML private Label countLabel;
@@ -20,6 +29,24 @@ public class PluginController {
     @FXML
     public void initialize() {
         refreshPluginsList();
+        KeyboardShortcutsHandler.registerContext(pluginRoot, this::handleShortcut);
+    }
+
+    private boolean handleShortcut(KeyboardShortcutsHandler.ShortcutAction action, Node focusOwner) {
+        if (focusOwner == null) {
+            return false;
+        }
+        return switch (action) {
+            case NEW_ITEM -> {
+                handleAddPlugin();
+                yield true;
+            }
+            case REFRESH -> {
+                handleRefreshPlugins();
+                yield true;
+            }
+            default -> false;
+        };
     }
     @FXML
     private void handleRefreshPlugins() {

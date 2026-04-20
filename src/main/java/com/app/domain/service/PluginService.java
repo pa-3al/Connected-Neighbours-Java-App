@@ -37,7 +37,7 @@ public class PluginService implements PluginUseCase {
 
         for (PluginMetadata meta : discovered) {
             boolean enabled = savedStates.getOrDefault(meta.id(), meta.enabled());
-            PluginMetadata updatedMeta = meta.withEnabled(enabled);
+            PluginMetadata updatedMeta = meta.withEnabled(enabled).withLoaded(false);
             pluginsMap.put(meta.id(), updatedMeta);
 
             if (enabled) {
@@ -45,13 +45,22 @@ public class PluginService implements PluginUseCase {
                     Plugin plugin = pluginRepository.loadPlugin(meta.id());
 
                     if (plugin != null) {
-                        plugin.onLoad(pluginContext);
-                        loadedPlugins.put(meta.id(), plugin);
-                        pluginsMap.put(meta.id(), updatedMeta.withLoaded(true));
-                        logger.info("PluginService", "Plugin loaded: " + meta.name());
+                        try {
+                            plugin.onLoad(pluginContext);
+                            loadedPlugins.put(meta.id(), plugin);
+                            pluginsMap.put(meta.id(), updatedMeta.withLoaded(true));
+                            logger.info("PluginService", "Plugin loaded: " + meta.name());
+                        } catch (Exception e) {
+                            logger.error("PluginService", "Failed to initialize plugin: " + meta.id(), e);
+                            disableBrokenPlugin(meta.id(), updatedMeta, plugin);
+                        }
+                    } else {
+                        logger.warn("PluginService", "Plugin class not found for id: " + meta.id() + ". Disabling it.");
+                        pluginsMap.put(meta.id(), updatedMeta.withEnabled(false).withLoaded(false));
                     }
                 } catch (Exception e) {
                     logger.error("PluginService", "Failed to load plugin: " + meta.id(), e);
+                    pluginsMap.put(meta.id(), updatedMeta.withEnabled(false).withLoaded(false));
                 }
             }
         }
@@ -79,15 +88,26 @@ public class PluginService implements PluginUseCase {
             Plugin plugin = pluginRepository.loadPlugin(pluginId);
 
             if (plugin != null) {
-                plugin.onLoad(pluginContext);
-                loadedPlugins.put(pluginId, plugin);
-                pluginsMap.put(pluginId, meta.withEnabled(true).withLoaded(true));
+                try {
+                    plugin.onLoad(pluginContext);
+                    loadedPlugins.put(pluginId, plugin);
+                    pluginsMap.put(pluginId, meta.withEnabled(true).withLoaded(true));
+                } catch (Exception e) {
+                    logger.error("PluginService", "Failed to initialize plugin while enabling: " + pluginId, e);
+                    disableBrokenPlugin(pluginId, meta.withEnabled(true), plugin);
+                    throw new IllegalStateException("Plugin could not be initialized. Verify plugin resources and dependencies.", e);
+                }
             } else {
-                pluginsMap.put(pluginId, meta.withEnabled(true));
+                logger.warn("PluginService", "Plugin class not found while enabling: " + pluginId);
+                pluginsMap.put(pluginId, meta.withEnabled(false).withLoaded(false));
+                throw new IllegalStateException("Plugin class not found for id: " + pluginId);
             }
         } catch (Exception e) {
             logger.error("PluginService", "Failed to enable plugin: " + pluginId, e);
-            pluginsMap.put(pluginId, meta.withEnabled(true));
+            pluginsMap.put(pluginId, meta.withEnabled(false).withLoaded(false));
+            if (e instanceof IllegalStateException) {
+                throw (IllegalStateException) e;
+            }
         }
         saveCurrentStates();
     }
@@ -122,7 +142,16 @@ public class PluginService implements PluginUseCase {
     @Override
     public void installPlugin(File jarFile) {
         logger.info("PluginService", "Installing plugin from: " + jarFile.getName());
-        loadPlugins();
+        pluginRepository.installPlugin(jarFile);
+        List<PluginMetadata> loaded = loadPlugins();
+
+        PluginMetadata installed = findPluginByJarName(loaded, jarFile.getName());
+        if (installed == null) {
+            throw new IllegalStateException("Plugin installed file was not discovered. Verify plugin.json and plugin class.");
+        }
+        if (!installed.isLoaded()) {
+            throw new IllegalStateException("Plugin was installed but failed to initialize. Check plugin resources/dependencies.");
+        }
     }
 
     @Override
@@ -150,5 +179,31 @@ public class PluginService implements PluginUseCase {
             states.put(entry.getKey(), entry.getValue().enabled());
         }
         pluginRepository.savePluginStates(states);
+    }
+
+    private PluginMetadata findPluginByJarName(List<PluginMetadata> plugins, String jarFileName) {
+        for (PluginMetadata plugin : plugins) {
+            if (plugin.jarPath() == null || plugin.jarPath().isBlank()) {
+                continue;
+            }
+            File path = new File(plugin.jarPath());
+            if (jarFileName.equalsIgnoreCase(path.getName())) {
+                return plugin;
+            }
+        }
+        return null;
+    }
+
+    private void disableBrokenPlugin(String pluginId, PluginMetadata baseMeta, Plugin plugin) {
+        try {
+            if (plugin != null) {
+                plugin.onUnload(pluginContext);
+            }
+        } catch (Exception e) {
+            logger.warn("PluginService", "Error while rolling back failed plugin load: " + pluginId + " - " + e.getMessage());
+        }
+        loadedPlugins.remove(pluginId);
+        pluginRepository.unloadPlugin(pluginId);
+        pluginsMap.put(pluginId, baseMeta.withEnabled(false).withLoaded(false));
     }
 }

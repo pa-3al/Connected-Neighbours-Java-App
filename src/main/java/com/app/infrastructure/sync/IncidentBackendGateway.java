@@ -35,6 +35,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class IncidentBackendGateway {
+    private enum SqlDialect {
+        POSTGRES,
+        SQLITE,
+        OTHER
+    }
 
     private final ConfigProvider configProvider;
     private final AuthenticatedHttpClient authenticatedHttpClient;
@@ -90,10 +95,15 @@ public class IncidentBackendGateway {
         DailyLogger.logInfo("Sync", "Fetching reports from direct DB: " + jdbcUrl.replaceAll("://([^:]+):([^@]+)@", "://$1:***@"));
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
-            logDatabaseIdentity(conn);
-            logKeyTableCounts(conn);
-            String table = resolveIncidentTable(conn);
-            logRlsStatus(conn, table);
+            SqlDialect dialect = detectDialect(conn, jdbcUrl);
+            logDatabaseIdentity(conn, dialect);
+            logKeyTableCounts(conn, dialect);
+            String table = resolveIncidentTable(conn, dialect);
+            if (table == null || table.isBlank()) {
+                DailyLogger.logWarn("Sync", "No compatible incident table found in sync database. Returning empty result.");
+                return new ArrayList<>();
+            }
+            logRlsStatus(conn, table, dialect);
             String sql = "SELECT * FROM " + table;
 
             ArrayList<Incident> result = new ArrayList<>();
@@ -168,8 +178,38 @@ public class IncidentBackendGateway {
         }
         return jdbc.toString();
     }
+    private SqlDialect detectDialect(Connection conn, String jdbcUrl) {
+        String url = jdbcUrl == null ? "" : jdbcUrl.toLowerCase();
+        if (url.startsWith("jdbc:postgresql:")) {
+            return SqlDialect.POSTGRES;
+        }
+        if (url.startsWith("jdbc:sqlite:")) {
+            return SqlDialect.SQLITE;
+        }
+        try {
+            String product = conn.getMetaData().getDatabaseProductName();
+            if (product != null) {
+                String p = product.toLowerCase();
+                if (p.contains("postgres")) {
+                    return SqlDialect.POSTGRES;
+                }
+                if (p.contains("sqlite")) {
+                    return SqlDialect.SQLITE;
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+        return SqlDialect.OTHER;
+    }
 
-    private String resolveIncidentTable(Connection conn) throws SQLException {
+    private String resolveIncidentTable(Connection conn, SqlDialect dialect) throws SQLException {
+        if (dialect == SqlDialect.SQLITE) {
+            return resolveIncidentTableSqlite(conn);
+        }
+        return resolveIncidentTablePostgres(conn);
+    }
+
+    private String resolveIncidentTablePostgres(Connection conn) throws SQLException {
         String configuredTable = configProvider.getSyncDatabaseTable();
         String[] targetNames = (configuredTable != null && !configuredTable.isBlank())
                 ? new String[]{configuredTable}
@@ -218,8 +258,74 @@ public class IncidentBackendGateway {
                         + available
         );
     }
+    private String resolveIncidentTableSqlite(Connection conn) throws SQLException {
+        String configuredTable = configProvider.getSyncDatabaseTable();
+        String[] targetNames = (configuredTable != null && !configuredTable.isBlank())
+                ? new String[]{configuredTable}
+                : new String[]{"reports", "incidents", "incident_reports"};
 
-    private void logDatabaseIdentity(Connection conn) {
+        List<String> tables = listSqliteTables(conn);
+        if (tables.isEmpty()) {
+            return null;
+        }
+
+        String bestTable = null;
+        long bestCount = -1;
+        for (String target : targetNames) {
+            String expected = normalizeTableName(target);
+            for (String table : tables) {
+                if (table.equalsIgnoreCase(expected)) {
+                    long count = countRowsSqlite(conn, table);
+                    DailyLogger.logInfo("Sync", "SQLite table candidate " + table + " has " + count + " row(s)");
+                    if (bestTable == null || count > bestCount) {
+                        bestTable = table;
+                        bestCount = count;
+                    }
+                }
+            }
+        }
+
+        if (bestTable != null) {
+            return quoteIdent(bestTable);
+        }
+
+        if (configuredTable == null || configuredTable.isBlank()) {
+            DailyLogger.logWarn("Sync", "No reports table found in SQLite DB (reports/incidents/incident_reports).");
+            return null;
+        }
+
+        DailyLogger.logWarn("Sync", "Configured sync table not found in SQLite DB: " + configuredTable);
+        return null;
+    }
+
+    private String normalizeTableName(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        int dot = trimmed.lastIndexOf('.');
+        if (dot >= 0 && dot < trimmed.length() - 1) {
+            trimmed = trimmed.substring(dot + 1);
+        }
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() > 1) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    private void logDatabaseIdentity(Connection conn, SqlDialect dialect) {
+        if (dialect == SqlDialect.SQLITE) {
+            String sql = "SELECT sqlite_version() AS version";
+            try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+                if (rs.next()) {
+                    DailyLogger.logInfo("Sync", "Connected to SQLite version=" + rs.getString("version"));
+                }
+            } catch (SQLException e) {
+                DailyLogger.logWarn("Sync", "Unable to read SQLite identity: " + e.getMessage());
+            }
+            return;
+        }
+
         String sql = "SELECT current_database() AS db, current_user AS usr, current_schema() AS schema";
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (rs.next()) {
@@ -230,7 +336,21 @@ public class IncidentBackendGateway {
         }
     }
 
-    private void logKeyTableCounts(Connection conn) {
+    private void logKeyTableCounts(Connection conn, SqlDialect dialect) {
+        if (dialect == SqlDialect.SQLITE) {
+            String sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('users', 'moderators', 'admins', 'reports', 'incidents', 'incident_reports') ORDER BY name";
+            try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+                while (rs.next()) {
+                    String table = rs.getString("name");
+                    long count = countRowsSqlite(conn, table);
+                    DailyLogger.logInfo("Sync", "SQLite key table " + table + " count=" + count);
+                }
+            } catch (SQLException e) {
+                DailyLogger.logWarn("Sync", "Unable to log SQLite key table counts: " + e.getMessage());
+            }
+            return;
+        }
+
         String sql = """
             SELECT table_schema, table_name
             FROM information_schema.tables
@@ -250,7 +370,11 @@ public class IncidentBackendGateway {
         }
     }
 
-    private void logRlsStatus(Connection conn, String qualifiedTable) {
+    private void logRlsStatus(Connection conn, String qualifiedTable, SqlDialect dialect) {
+        if (dialect != SqlDialect.POSTGRES) {
+            return;
+        }
+
         String cleaned = qualifiedTable.replace("\"", "");
         String[] parts = cleaned.split("\\.", 2);
         if (parts.length != 2) {
@@ -285,6 +409,30 @@ public class IncidentBackendGateway {
             DailyLogger.logWarn("Sync", "Unable to count rows for " + schema + "." + table + ": " + e.getMessage());
             return 0;
         }
+    }
+
+    private long countRowsSqlite(Connection conn, String table) {
+        String sql = "SELECT COUNT(*) FROM " + quoteIdent(table);
+        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            DailyLogger.logWarn("Sync", "Unable to count rows for SQLite table " + table + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private List<String> listSqliteTables(Connection conn) throws SQLException {
+        String sql = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name";
+        ArrayList<String> tables = new ArrayList<>();
+        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                if (name != null && !name.startsWith("sqlite_")) {
+                    tables.add(name);
+                }
+            }
+        }
+        return tables;
     }
 
     private List<String> listBusinessTables(Connection conn) throws SQLException {

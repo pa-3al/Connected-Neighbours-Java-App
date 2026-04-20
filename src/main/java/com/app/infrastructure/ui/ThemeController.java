@@ -17,13 +17,16 @@ import com.app.infrastructure.ui.theme.ThemeColorFactory;
 import com.app.infrastructure.ui.theme.ThemeColors;
 import com.app.infrastructure.ui.theme.ThemeCssGenerator;
 import com.app.infrastructure.ui.theme.ThemeEditorDialog;
+import com.app.infrastructure.util.KeyboardShortcutsHandler;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 
@@ -37,6 +40,8 @@ public class ThemeController {
 
     private final ThemeUseCase themeUseCase;
 
+    @FXML
+    private ScrollPane themeRoot;
     @FXML
     private FlowPane themesContainer;
     @FXML
@@ -56,6 +61,25 @@ public class ThemeController {
     public void initialize() {
         refreshThemesList();
         updateCurrentThemeLabel();
+        KeyboardShortcutsHandler.registerContext(themeRoot, this::handleShortcut);
+    }
+
+    private boolean handleShortcut(KeyboardShortcutsHandler.ShortcutAction action, Node focusOwner) {
+        if (focusOwner == null) {
+            return false;
+        }
+        return switch (action) {
+            case NEW_ITEM -> {
+                handleCreateTheme();
+                yield true;
+            }
+            case REFRESH -> {
+                refreshThemesList();
+                updateCurrentThemeLabel();
+                yield true;
+            }
+            default -> false;
+        };
     }
 
     private void refreshThemesList() {

@@ -6,6 +6,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -68,6 +69,29 @@ public class FileSystemPluginAdapter implements PluginRepository {
     public List<PluginMetadata> getInstalledPlugins() {
         return discoverAndLoadPlugins();
     }
+
+    @Override
+    public void installPlugin(File jarFile) {
+        if (jarFile == null || !jarFile.exists() || !jarFile.isFile()) {
+            throw new IllegalArgumentException("Plugin file is missing or invalid");
+        }
+        if (!validateJar(jarFile, false)) {
+            throw new IllegalArgumentException("Invalid plugin JAR: " + jarFile.getName());
+        }
+
+        Path source = jarFile.toPath();
+        Path target = pluginsDir.resolve(jarFile.getName());
+
+        try {
+            if (!source.toAbsolutePath().normalize().equals(target.toAbsolutePath().normalize())) {
+                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            DailyLogger.logInfo("PluginLoader", "Installed plugin JAR: " + target.getFileName());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to install plugin JAR: " + jarFile.getName(), e);
+        }
+    }
+
     private PluginMetadata scanJar(File jarFile) {
         if (!validateJar(jarFile, false)) {
             return null;

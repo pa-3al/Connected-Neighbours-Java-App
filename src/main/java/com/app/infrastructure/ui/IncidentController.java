@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
+
 import com.app.domain.model.Incident;
 import com.app.domain.model.Incident.IncidentCategory;
 import com.app.domain.model.Incident.IncidentStatus;
@@ -12,10 +13,12 @@ import com.app.domain.service.UserService;
 import com.app.infrastructure.i18n.I18nService;
 import com.app.infrastructure.sync.IncidentSyncManager;
 import com.app.infrastructure.sync.IncidentSyncReport;
+import com.app.infrastructure.util.KeyboardShortcutsHandler;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
@@ -29,6 +32,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.web.WebView;
 
@@ -42,6 +46,7 @@ public class IncidentController {
     private final ConflictResolutionDialog conflictDialog = new ConflictResolutionDialog();
     private final I18nService i18n = I18nService.getInstance();
 
+    @FXML private BorderPane incidentRoot;
     @FXML private TableView<Incident> incidentTable;
     @FXML private TableColumn<Incident, String> colId;
     @FXML private TableColumn<Incident, String> colTitle;
@@ -69,7 +74,7 @@ public class IncidentController {
 
         incidentTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             boolean selected = newSel != null;
-            boolean isCompleted = selected && newSel.status() == IncidentStatus.COMPLETED;
+            boolean isCompleted = newSel != null && newSel.status() == IncidentStatus.COMPLETED;
 
             btnResolve.setDisable(!selected || isCompleted);
             btnDelete.setDisable(!selected || isCompleted);
@@ -77,6 +82,39 @@ public class IncidentController {
 
         btnResolve.setDisable(true);
         btnDelete.setDisable(true);
+
+        KeyboardShortcutsHandler.registerContext(incidentRoot, this::handleShortcut);
+    }
+
+    private boolean handleShortcut(KeyboardShortcutsHandler.ShortcutAction action, Node focusOwner) {
+        if (focusOwner == null) {
+            return false;
+        }
+        return switch (action) {
+            case NEW_ITEM -> {
+                handleAdd();
+                yield true;
+            }
+            case REFRESH -> {
+                handleRefresh();
+                yield true;
+            }
+            case DELETE_ITEM -> {
+                if (incidentTable.getSelectionModel().getSelectedItem() == null) {
+                    yield false;
+                }
+                handleDelete();
+                yield true;
+            }
+            case ESCAPE -> {
+                if (incidentTable.getSelectionModel().getSelectedItem() == null) {
+                    yield false;
+                }
+                incidentTable.getSelectionModel().clearSelection();
+                yield true;
+            }
+            default -> false;
+        };
     }
 
     private void setupColumns() {

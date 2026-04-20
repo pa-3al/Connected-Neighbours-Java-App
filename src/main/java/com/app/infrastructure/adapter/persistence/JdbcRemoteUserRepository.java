@@ -10,9 +10,12 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.app.infrastructure.util.DailyLogger;
 
 public class JdbcRemoteUserRepository implements RemoteUserRepository {
 
@@ -44,11 +47,28 @@ public class JdbcRemoteUserRepository implements RemoteUserRepository {
                         rs.getString("email")
                 ));
             }
+        } catch (SQLException e) {
+            if (isMissingUsersTable(e)) {
+                DailyLogger.logWarn("RemoteUsers", "users table not found in sync database. Returning empty user list.");
+                return List.of();
+            }
+            DailyLogger.logError("RemoteUsers", "Failed to fetch users from sync database", e);
+            return List.of();
         } catch (Exception e) {
-            e.printStackTrace();
+            DailyLogger.logError("RemoteUsers", "Unexpected error while fetching users", e);
+            return List.of();
         }
 
         return users;
+    }
+
+    private boolean isMissingUsersTable(SQLException e) {
+        String message = e.getMessage();
+        if (message == null) {
+            return false;
+        }
+        String normalized = message.toLowerCase();
+        return normalized.contains("no such table: users") || normalized.contains("relation \"users\" does not exist");
     }
 
     private String toJdbcPostgresUrl(String rawUrl) {

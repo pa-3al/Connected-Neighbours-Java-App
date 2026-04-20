@@ -112,6 +112,9 @@ class PluginServiceTest {
             return discoverAndLoadPlugins();
         }
         @Override
+        public void installPlugin(java.io.File jarFile) {
+        }
+        @Override
         public Plugin loadPlugin(String pluginId) {
             return new MockPlugin();
         }

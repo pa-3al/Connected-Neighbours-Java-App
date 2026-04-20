@@ -1,11 +1,5 @@
 package com.app.infrastructure.ui;
 
-import com.app.domain.port.in.CheckUpdateUseCase;
-import javafx.application.Platform;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import com.app.domain.port.out.ThemeRepository;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,10 +7,32 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 
+import com.app.domain.port.in.CheckUpdateUseCase;
+import com.app.domain.port.out.ThemeRepository;
+import com.app.infrastructure.util.KeyboardShortcutsHandler;
+
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.layout.HBox;
+
 public class SettingsController {
     private final CheckUpdateUseCase checkUpdateUseCase;
     private final com.app.infrastructure.config.ConfigProvider configProvider = new com.app.infrastructure.config.ConfigProvider();
 
+    @FXML private ScrollPane settingsRoot;
     @FXML private Label settingsTitleLabel;
     @FXML private Label generalLabel;
     @FXML private Label languageLabel;
@@ -68,6 +84,23 @@ public class SettingsController {
         );
         resetDownloadUI();
         loadDbConfig();
+
+        KeyboardShortcutsHandler.registerContext(settingsRoot, this::handleShortcut);
+    }
+
+    private boolean handleShortcut(KeyboardShortcutsHandler.ShortcutAction action, Node focusOwner) {
+        if (action != KeyboardShortcutsHandler.ShortcutAction.SAVE) {
+            return false;
+        }
+        if (!isDbFieldFocused(focusOwner)) {
+            return false;
+        }
+        handleSaveDbConfig();
+        return true;
+    }
+
+    private boolean isDbFieldFocused(Node focusOwner) {
+        return focusOwner == dbUrlField || focusOwner == dbUserField || focusOwner == dbPasswordField;
     }
 
     private void bindI18n() {
