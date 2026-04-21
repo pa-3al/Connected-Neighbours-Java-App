@@ -115,10 +115,15 @@ class PluginServiceTest {
         List<File> installedPluginFiles = new ArrayList<>();
         @Override
         public List<PluginMetadata> discoverAndLoadPlugins() {
-            return new ArrayList<>(List.of(
-                new PluginMetadata("test-plugin", "Test Plugin", "1.0.0", "Test Author", 
+            List<PluginMetadata> discovered = new ArrayList<>(List.of(
+                new PluginMetadata("test-plugin", "Test Plugin", "1.0.0", "Test Author",
                     "A test plugin", true, false, null)
             ));
+            for (File installed : installedPluginFiles) {
+                discovered.add(new PluginMetadata("my-plugin", "My Plugin", "1.0.0", "Test Author",
+                    "An installed plugin", true, false, installed.getPath()));
+            }
+            return discovered;
         }
         @Override
         public List<PluginMetadata> getInstalledPlugins() {
@@ -126,6 +131,7 @@ class PluginServiceTest {
         }
         @Override
         public void installPlugin(java.io.File jarFile) {
+            installedPluginFiles.add(jarFile);
         }
         @Override
         public Plugin loadPlugin(String pluginId) {

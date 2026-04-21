@@ -1,6 +1,4 @@
 package com.app.domain.port.out;
-import com.app.domain.model.PluginMetadata;
-import com.app.plugin.Plugin;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
