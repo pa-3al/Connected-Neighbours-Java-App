@@ -121,7 +121,11 @@ public class PluginService implements PluginUseCase {
 
     @Override
     public void installPlugin(File jarFile) {
+        if (jarFile == null) {
+            throw new IllegalArgumentException("Plugin JAR is required");
+        }
         logger.info("PluginService", "Installing plugin from: " + jarFile.getName());
+        pluginRepository.installPlugin(jarFile);
         loadPlugins();
     }
 

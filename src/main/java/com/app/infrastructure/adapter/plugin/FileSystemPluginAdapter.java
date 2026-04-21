@@ -6,10 +6,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -68,6 +70,36 @@ public class FileSystemPluginAdapter implements PluginRepository {
     public List<PluginMetadata> getInstalledPlugins() {
         return discoverAndLoadPlugins();
     }
+
+    @Override
+    public void installPlugin(File jarFile) {
+        if (jarFile == null) {
+            throw new IllegalArgumentException("Plugin JAR is required");
+        }
+
+        String fileName = jarFile.getName();
+        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
+            throw new IllegalArgumentException("Only .jar files are supported");
+        }
+
+        if (!validateJar(jarFile, false)) {
+            throw new IllegalArgumentException("Invalid plugin JAR: " + fileName);
+        }
+
+        Path source = jarFile.toPath();
+        Path target = pluginsDir.resolve(fileName);
+
+        try {
+            if (!source.toAbsolutePath().normalize().equals(target.toAbsolutePath().normalize())) {
+                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            DailyLogger.logInfo("PluginAdapter", "Plugin copied to plugins dir: " + fileName);
+        } catch (IOException e) {
+            DailyLogger.logError("PluginAdapter", "Failed to install plugin: " + fileName, e);
+            throw new IllegalStateException("Failed to install plugin: " + fileName, e);
+        }
+    }
+
     private PluginMetadata scanJar(File jarFile) {
         if (!validateJar(jarFile, false)) {
             return null;
