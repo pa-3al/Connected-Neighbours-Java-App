@@ -1,5 +1,6 @@
 package com.app.domain.service;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -98,8 +99,20 @@ class PluginServiceTest {
         pluginService.reloadPlugin("test-plugin");
         assertTrue(pluginService.isPluginEnabled("test-plugin"));
     }
+
+    @Test
+    void testInstallPlugin_shouldDelegateToRepository() {
+        File jarFile = new File("my-plugin.jar");
+
+        pluginService.installPlugin(jarFile);
+
+        assertEquals(1, mockRepo.installedPluginFiles.size());
+        assertEquals("my-plugin.jar", mockRepo.installedPluginFiles.get(0).getName());
+    }
+
     private static class MockPluginRepository implements PluginRepository {
         List<String> deletedPlugins = new ArrayList<>();
+        List<File> installedPluginFiles = new ArrayList<>();
         @Override
         public List<PluginMetadata> discoverAndLoadPlugins() {
             return new ArrayList<>(List.of(
