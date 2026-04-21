@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,6 +28,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.Modality;
@@ -94,6 +96,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
                 Stage ssoStage = new Stage();
                 ssoStage.initModality(Modality.APPLICATION_MODAL);
                 ssoStage.setTitle("SSO Login");
+                setStageIcon(ssoStage);
 
                 WebView webView = new WebView();
                 webView.getEngine().load(authorizeUrl);
@@ -232,6 +235,13 @@ public class HttpAdminAuthRepository implements AuthRepository {
                 + "<h2>Connected-Neighbours-Java-App</h2>"
                 + "<p>" + message + "</p>"
                 + "</body></html>";
+    }
+
+    private void setStageIcon(Stage stage) {
+        URL iconUrl = HttpAdminAuthRepository.class.getResource("/icon.png");
+        if (iconUrl != null) {
+            stage.getIcons().add(new Image(iconUrl.toExternalForm()));
+        }
     }
 
     private String buildUrl(String path) {

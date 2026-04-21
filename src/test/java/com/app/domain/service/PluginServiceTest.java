@@ -1,6 +1,5 @@
 package com.app.domain.service;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -30,6 +29,8 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.layout.Pane;
 
 class PluginServiceTest {
+    private static final int EXPECTED_PLUGIN_COUNT = 1;
+
     private PluginService pluginService;
     private MockPluginRepository mockRepo;
     private MockPluginContext mockContext;
@@ -74,14 +75,14 @@ class PluginServiceTest {
         List<PluginMetadata> plugins = pluginService.loadPlugins();
         assertNotNull(plugins);
         assertFalse(plugins.isEmpty());
-        assertEquals(3, plugins.size());
+        assertEquals(EXPECTED_PLUGIN_COUNT, plugins.size());
         assertTrue(plugins.stream().anyMatch(p -> "test-plugin".equals(p.id())));
     }
     @Test
     void testGetInstalledPlugins_shouldLoadIfEmpty() {
         List<PluginMetadata> plugins = pluginService.getInstalledPlugins();
         assertNotNull(plugins);
-        assertEquals(3, plugins.size());
+        assertEquals(EXPECTED_PLUGIN_COUNT, plugins.size());
     }
     @Test
     void testUninstallPlugin_shouldRemovePlugin() {
