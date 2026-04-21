@@ -125,8 +125,7 @@ class PluginServiceTest {
             return discoverAndLoadPlugins();
         }
         @Override
-        public void installPlugin(File jarFile) {
-            installedPluginFiles.add(jarFile);
+        public void installPlugin(java.io.File jarFile) {
         }
         @Override
         public Plugin loadPlugin(String pluginId) {

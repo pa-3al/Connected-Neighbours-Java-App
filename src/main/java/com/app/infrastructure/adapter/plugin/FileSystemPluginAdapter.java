@@ -73,30 +73,23 @@ public class FileSystemPluginAdapter implements PluginRepository {
 
     @Override
     public void installPlugin(File jarFile) {
-        if (jarFile == null) {
-            throw new IllegalArgumentException("Plugin JAR is required");
+        if (jarFile == null || !jarFile.exists() || !jarFile.isFile()) {
+            throw new IllegalArgumentException("Plugin file is missing or invalid");
         }
-
-        String fileName = jarFile.getName();
-        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
-            throw new IllegalArgumentException("Only .jar files are supported");
-        }
-
         if (!validateJar(jarFile, false)) {
-            throw new IllegalArgumentException("Invalid plugin JAR: " + fileName);
+            throw new IllegalArgumentException("Invalid plugin JAR: " + jarFile.getName());
         }
 
         Path source = jarFile.toPath();
-        Path target = pluginsDir.resolve(fileName);
+        Path target = pluginsDir.resolve(jarFile.getName());
 
         try {
             if (!source.toAbsolutePath().normalize().equals(target.toAbsolutePath().normalize())) {
                 Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             }
-            DailyLogger.logInfo("PluginAdapter", "Plugin copied to plugins dir: " + fileName);
+            DailyLogger.logInfo("PluginLoader", "Installed plugin JAR: " + target.getFileName());
         } catch (IOException e) {
-            DailyLogger.logError("PluginAdapter", "Failed to install plugin: " + fileName, e);
-            throw new IllegalStateException("Failed to install plugin: " + fileName, e);
+            throw new RuntimeException("Failed to install plugin JAR: " + jarFile.getName(), e);
         }
     }
 

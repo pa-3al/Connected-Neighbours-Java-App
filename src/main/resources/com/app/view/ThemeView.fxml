@@ -6,6 +6,7 @@
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.app.infrastructure.ui.ThemeController"
+            fx:id="themeRoot"
             fitToWidth="true"
             hbarPolicy="NEVER">
 
