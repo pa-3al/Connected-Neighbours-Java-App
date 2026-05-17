@@ -1,6 +1,11 @@
 package com.app.infrastructure.ui;
 
+import com.app.infrastructure.di.ServiceContext;
+import com.app.infrastructure.sync.IncidentSyncManager;
 import com.app.infrastructure.util.ConnectivityUtil;
+import com.app.infrastructure.util.DailyLogger;
+
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -12,8 +17,11 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.util.concurrent.CompletableFuture;
+
 public class MainController {
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
+
     @FXML private BorderPane contentArea;
     @FXML private Label statusLabel;
     @FXML private VBox sidebar;
@@ -37,11 +45,19 @@ public class MainController {
     private Parent incidentView;
     private Parent queryView;
 
+    private ServiceContext serviceContext;
+    private IncidentSyncManager incidentSyncManager;
+
     private double lastDividerPosition = 0.25;
     private boolean isSidebarCollapsed = false;
 
     public VBox getSidebar() {
         return sidebar;
+    }
+
+    public void setServiceContext(ServiceContext serviceContext) {
+        this.serviceContext = serviceContext;
+        this.incidentSyncManager = new IncidentSyncManager(serviceContext.getIncidentService());
     }
 
     public void setViews(Parent homeView, Parent settingsView, Parent themeView, Parent pluginView, Parent queryView, Parent incidentView) {
@@ -58,9 +74,54 @@ public class MainController {
     public void initialize() {
         AppState.getInstance().onlineProperty().addListener((obs, oldVal, newVal) -> {
             updateOnlineStatus(newVal);
+            if (newVal && !oldVal) {
+                handleBackOnline();
+            }
         });
+
+        AppState.getInstance().syncingProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                statusLabel.textProperty().bind(i18n.createStringBinding("main.status.syncing"));
+            } else {
+                updateOnlineStatus(AppState.getInstance().isOnline());
+            }
+        });
+
         bindI18n();
         checkConnectivity();
+    }
+
+    private void handleBackOnline() {
+        if (!AppState.getInstance().isAuthenticated()) {
+            App.triggerLogin();
+            AppState.getInstance().accessTokenProperty().addListener(new javafx.beans.value.ChangeListener<String>() {
+                @Override
+                public void changed(javafx.beans.value.ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                    if (newValue != null && !newValue.isBlank()) {
+                        AppState.getInstance().accessTokenProperty().removeListener(this);
+                        runSynchronization();
+                    }
+                }
+            });
+        } else {
+            runSynchronization();
+        }
+    }
+
+    private void runSynchronization() {
+        if (incidentSyncManager == null || AppState.getInstance().isSyncing()) {
+            return;
+        }
+        AppState.getInstance().setSyncing(true);
+        CompletableFuture.runAsync(() -> {
+            try {
+                incidentSyncManager.syncWithBackend(conflict -> conflict.localIncident());
+            } catch (Exception e) {
+                DailyLogger.logError("MainController", "Sync failed", e);
+            } finally {
+                Platform.runLater(() -> AppState.getInstance().setSyncing(false));
+            }
+        });
     }
 
     private void bindI18n() {
@@ -76,7 +137,7 @@ public class MainController {
         statusLabel.textProperty().bind(i18n.createStringBinding("main.status.checking"));
         new Thread(() -> {
             boolean isConnected = ConnectivityUtil.checkConnectivity();
-            javafx.application.Platform.runLater(() -> {
+            Platform.runLater(() -> {
                 AppState.getInstance().setOnline(isConnected);
                 updateOnlineStatus(isConnected);
             });
@@ -84,7 +145,9 @@ public class MainController {
     }
 
     private void updateOnlineStatus(boolean isOnline) {
-        statusLabel.textProperty().bind(i18n.createStringBinding(isOnline ? "settings.online.active" : "settings.online.inactive"));
+        if (!AppState.getInstance().isSyncing()) {
+            statusLabel.textProperty().bind(i18n.createStringBinding(isOnline ? "settings.online.active" : "settings.online.inactive"));
+        }
     }
 
     @FXML
@@ -135,7 +198,7 @@ public class MainController {
 
     @FXML
     private void handleExit() {
-        javafx.application.Platform.exit();
+        Platform.exit();
     }
 
     @FXML
@@ -159,13 +222,13 @@ public class MainController {
     }
 
     public void addPluginPanel(String title, Parent panelContent) {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             for (Node node : pluginsNavContainer.getChildren()) {
-                if (node instanceof javafx.scene.control.Button && title.equals(((javafx.scene.control.Button)node).getText())) {
+                if (node instanceof Button && title.equals(((Button)node).getText())) {
                     return;
                 }
             }
-            javafx.scene.control.Button btn = new javafx.scene.control.Button(title);
+            Button btn = new Button(title);
             btn.setMaxWidth(Double.MAX_VALUE);
             btn.getStyleClass().add("sidebar-button");
             btn.setOnAction(e -> {
@@ -177,9 +240,9 @@ public class MainController {
     }
 
     public void removePluginPanel(String title) {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             pluginsNavContainer.getChildren().removeIf(node ->
-                    node instanceof javafx.scene.control.Button && title.equals(((javafx.scene.control.Button)node).getText())
+                    node instanceof Button && title.equals(((Button)node).getText())
             );
         });
     }

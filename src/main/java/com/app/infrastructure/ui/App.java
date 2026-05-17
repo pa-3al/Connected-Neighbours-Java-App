@@ -12,10 +12,12 @@ import com.app.domain.service.UpdateService;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.adapter.auth.TokenManager;
 import com.app.infrastructure.adapter.theme.JavaFXThemeAdapter;
+import com.app.infrastructure.util.ConnectivityUtil;
 import com.app.infrastructure.util.DailyLogger;
 import com.app.plugin.PluginContext;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -25,19 +27,20 @@ import javafx.stage.Stage;
 
 public class App extends Application {
     private static Scene scene;
+    private static Stage mainStage;
+    private static com.app.infrastructure.di.ServiceContext serviceContextInstance;
 
     @Override
     public void start(Stage stage) throws IOException {
+        mainStage = stage;
         DailyLogger.getInstance().logAppStart();
-        DailyLogger.logInfo("App", "Initializing JavaFX application...");
 
         try {
-            DailyLogger.logDebug("App", "Creating ServiceContext...");
             com.app.infrastructure.di.ServiceContext serviceContext = new com.app.infrastructure.di.ServiceContext(false);
+            serviceContextInstance = serviceContext;
 
             try {
                 serviceContext.initializeDatabase();
-                DailyLogger.logInfo("App", "Database initialized.");
             } catch (Exception e) {
                 DailyLogger.logError("App", "Database initialization failed", e);
             }
@@ -45,27 +48,25 @@ public class App extends Application {
             AuthService authService = serviceContext.getAuthService();
             UpdateService updateService = serviceContext.getUpdateService();
             PluginService pluginService = serviceContext.getPluginService();
-            DailyLogger.logInfo("App", "Services initialized successfully");
-
             PluginContext pluginContext = serviceContext.getPluginContext();
 
             JavaFXThemeAdapter themeAdapter = new JavaFXThemeAdapter();
             ThemeService themeService = new ThemeService(themeAdapter);
-            DailyLogger.logDebug("App", "Theme system initialized");
-            DailyLogger.logDebug("App", "Loading FXML views...");
-
             ResourceBundle bundle = com.app.infrastructure.i18n.I18nService.getInstance().getBundle();
+
+            boolean isInitiallyOnline = ConnectivityUtil.checkConnectivity();
+            AppState.getInstance().setOnline(isInitiallyOnline);
 
             if (serviceContext.isAuthBypassEnabled()) {
                 String bypassToken = serviceContext.getAuthBypassToken();
                 AppState.getInstance().setAccessToken(bypassToken);
-                DailyLogger.logWarn("App", "Authentication bypass mode is enabled. Login dialog skipped.");
+            } else if (!isInitiallyOnline) {
+                DailyLogger.logWarn("App", "Starting in offline mode. Skipping login.");
             } else {
                 boolean autoLoginSuccess = attemptAutoLogin();
                 if (!autoLoginSuccess) {
                     if (!showLoginDialog(stage, authService, bundle)) {
-                        DailyLogger.logWarn("App", "Authentication cancelled. Exiting application.");
-                        javafx.application.Platform.exit();
+                        Platform.exit();
                         return;
                     }
                 }
@@ -75,6 +76,8 @@ public class App extends Application {
             mainLoader.setResources(bundle);
             Parent root = mainLoader.load();
             MainController mainController = mainLoader.getController();
+
+            mainController.setServiceContext(serviceContext);
 
             pluginContext.subscribe("PLUGIN_MENU_ADDED", item ->
                     mainController.addPluginMenuItem((javafx.scene.control.MenuItem) item));
@@ -118,7 +121,6 @@ public class App extends Application {
             incidentLoader.setControllerFactory(param -> new IncidentController(serviceContext.getIncidentService(), serviceContext.getUserService()));
             Parent incidentView = incidentLoader.load();
 
-            DailyLogger.logInfo("App", "All views loaded successfully");
             mainController.setViews(homeView, settingsView, themeView, pluginView, queryView, incidentView);
             scene = new Scene(root, 1000, 700);
             com.app.infrastructure.util.KeyboardShortcutsHandler.attachTo(scene);
@@ -126,7 +128,6 @@ public class App extends Application {
 
             String savedTheme = themeAdapter.loadPreference();
             themeAdapter.applyTheme(savedTheme != null ? savedTheme : "default-dark");
-            DailyLogger.logInfo("App", "Theme applied: " + (savedTheme != null ? savedTheme : "default-dark"));
 
             stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
             stage.setScene(scene);
@@ -136,14 +137,11 @@ public class App extends Application {
                 AppState.getInstance().shutdown();
             });
             stage.show();
-            DailyLogger.logInfo("App", "Application window displayed");
 
         } catch (RuntimeException | IOException t) {
-            DailyLogger.logError("App", "FATAL: Application startup failed", t);
             try (java.io.PrintWriter pw = new java.io.PrintWriter("startup_error.log")) {
                 t.printStackTrace(pw);
             } catch (IOException ex) {
-                DailyLogger.logError("App", "Failed to write startup error log", ex);
             }
             throw new RuntimeException("Startup failed", t);
         }
@@ -169,15 +167,21 @@ public class App extends Application {
         return false;
     }
 
-    private boolean showLoginDialog(Stage owner, AuthService authService, ResourceBundle bundle) throws IOException {
+    public static boolean showLoginDialog(Stage owner, AuthService authService, ResourceBundle bundle) throws IOException {
         AtomicBoolean authenticated = new AtomicBoolean(false);
 
         Stage loginStage = new Stage();
         loginStage.initModality(Modality.APPLICATION_MODAL);
-        loginStage.initOwner(owner);
+        if (owner != null) {
+            loginStage.initOwner(owner);
+        }
         loginStage.setResizable(false);
         loginStage.setTitle("Connected-Neighbours-Java-App - Login");
-        setStageIcon(loginStage);
+
+        URL iconUrl = App.class.getResource("/icon.png");
+        if (iconUrl != null) {
+            loginStage.getIcons().add(new Image(iconUrl.toExternalForm()));
+        }
 
         FXMLLoader loginLoader = new FXMLLoader(App.class.getResource("/com/app/view/LoginView.fxml"));
         loginLoader.setResources(bundle);
@@ -189,7 +193,6 @@ public class App extends Application {
                     loginStage.close();
                 });
             }
-
             try {
                 return param.getDeclaredConstructor().newInstance();
             } catch (ReflectiveOperationException e) {
@@ -211,12 +214,22 @@ public class App extends Application {
         return authenticated.get();
     }
 
+    public static void triggerLogin() {
+        Platform.runLater(() -> {
+            try {
+                AuthService authService = serviceContextInstance.getAuthService();
+                ResourceBundle bundle = com.app.infrastructure.i18n.I18nService.getInstance().getBundle();
+                showLoginDialog(mainStage, authService, bundle);
+            } catch (IOException e) {
+                DailyLogger.logError("App", "Failed to open login dialog", e);
+            }
+        });
+    }
+
     private void setStageIcon(Stage stage) {
         URL iconUrl = App.class.getResource("/icon.png");
         if (iconUrl != null) {
             stage.getIcons().add(new Image(iconUrl.toExternalForm()));
-        } else {
-            DailyLogger.logWarn("App", "App icon not found at /icon.png");
         }
     }
 }
