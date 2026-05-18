@@ -44,6 +44,8 @@ public class ServiceContext {
     private volatile CategoryService categoryService;
     private volatile ContractTemplateService contractTemplateService;
     private volatile MediaService mediaService;
+    private volatile EventService eventService;
+    private volatile EventTagService eventTagService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -192,7 +194,9 @@ public class ServiceContext {
                             getNeighbourhoodService(),
                             getCategoryService(),
                             getContractTemplateService(),
-                            getMediaService()
+                            getMediaService(),
+                            getEventService(),
+                            getEventTagService()
                     );
                 }
             }
@@ -306,6 +310,24 @@ public class ServiceContext {
             }
         }
         return mediaService;
+    }
+
+    public EventService getEventService() {
+        if (eventService == null) {
+            synchronized (this) {
+                if (eventService == null) eventService = new EventService(getDatabaseConfig());
+            }
+        }
+        return eventService;
+    }
+
+    public EventTagService getEventTagService() {
+        if (eventTagService == null) {
+            synchronized (this) {
+                if (eventTagService == null) eventTagService = new EventTagService(getDatabaseConfig());
+            }
+        }
+        return eventTagService;
     }
 
     private AlertRepository getAlertRepository() {

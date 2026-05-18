@@ -144,6 +144,33 @@ public class SchemaInitializer {
                 )
             """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_tags (
+                    name VARCHAR(50) PRIMARY KEY,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    id VARCHAR(36) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description VARCHAR(2048) NOT NULL,
+                    points INTEGER DEFAULT 1,
+                    real_money_price REAL DEFAULT 0.0,
+                    require_validation BOOLEAN DEFAULT 0,
+                    signature_url VARCHAR(255),
+                    contract_id VARCHAR(36),
+                    address_id VARCHAR(36),
+                    created_by_user_id VARCHAR(36),
+                    approved_by_moderator_id VARCHAR(36),
+                    approved_by_admin_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");

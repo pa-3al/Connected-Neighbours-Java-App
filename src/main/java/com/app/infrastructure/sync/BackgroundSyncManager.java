@@ -15,6 +15,8 @@ public class BackgroundSyncManager {
     private final CategorySyncManager categorySyncManager;
     private final ContractTemplateSyncManager contractTemplateSyncManager;
     private final MediaSyncManager mediaSyncManager;
+    private final EventSyncManager eventSyncManager;
+    private final EventTagSyncManager eventTagSyncManager;
 
     public BackgroundSyncManager(
             UserService userService,
@@ -23,7 +25,9 @@ public class BackgroundSyncManager {
             NeighbourhoodService neighbourhoodService,
             CategoryService categoryService,
             ContractTemplateService contractTemplateService,
-            MediaService mediaService
+            MediaService mediaService,
+            EventService eventService,
+            EventTagService eventTagService
     ) {
         this.userService = userService;
         ConfigProvider config = new ConfigProvider();
@@ -36,6 +40,8 @@ public class BackgroundSyncManager {
         this.categorySyncManager = new CategorySyncManager(categoryService, config, authClient);
         this.contractTemplateSyncManager = new ContractTemplateSyncManager(contractTemplateService, config, authClient);
         this.mediaSyncManager = new MediaSyncManager(mediaService, config, authClient);
+        this.eventSyncManager = new EventSyncManager(eventService, config, authClient);
+        this.eventTagSyncManager = new EventTagSyncManager(eventTagService, config, authClient);
     }
 
     public void startAutomaticSyncOnStartup() {
@@ -49,12 +55,14 @@ public class BackgroundSyncManager {
                         categorySyncManager.syncWithBackend(conflict -> conflict.server());
                         contractTemplateSyncManager.syncWithBackend(conflict -> conflict.server());
                         mediaSyncManager.syncWithBackend(conflict -> conflict.server());
+                        eventTagSyncManager.syncWithBackend(conflict -> conflict.server());
+                        eventSyncManager.syncWithBackend(conflict -> conflict.server());
                         incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
                         break;
                     }
                     Thread.sleep(5000);
                 } catch (Exception e) {
-                    DailyLogger.logError("Sync", "Une erreur critique a stoppé la synchronisation en arrière-plan : " + e.getMessage(), e);
+                    DailyLogger.logError("Sync", "Erreur: " + e.getMessage(), e);
                     try {
                         Thread.sleep(15000);
                     } catch (InterruptedException ie) {
