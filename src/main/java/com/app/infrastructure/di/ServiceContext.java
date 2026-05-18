@@ -41,6 +41,9 @@ public class ServiceContext {
     private volatile UserService userService;
     private volatile AddressService addressService;
     private volatile NeighbourhoodService neighbourhoodService;
+    private volatile CategoryService categoryService;
+    private volatile ContractTemplateService contractTemplateService;
+    private volatile MediaService mediaService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -186,7 +189,10 @@ public class ServiceContext {
                             getUserService(),
                             getIncidentService(),
                             getAddressService(),
-                            getNeighbourhoodService()
+                            getNeighbourhoodService(),
+                            getCategoryService(),
+                            getContractTemplateService(),
+                            getMediaService()
                     );
                 }
             }
@@ -273,6 +279,33 @@ public class ServiceContext {
             }
         }
         return userRepository;
+    }
+
+    public CategoryService getCategoryService() {
+        if (categoryService == null) {
+            synchronized (this) {
+                if (categoryService == null) categoryService = new CategoryService(getDatabaseConfig());
+            }
+        }
+        return categoryService;
+    }
+
+    public ContractTemplateService getContractTemplateService() {
+        if (contractTemplateService == null) {
+            synchronized (this) {
+                if (contractTemplateService == null) contractTemplateService = new ContractTemplateService(getDatabaseConfig());
+            }
+        }
+        return contractTemplateService;
+    }
+
+    public MediaService getMediaService() {
+        if (mediaService == null) {
+            synchronized (this) {
+                if (mediaService == null) mediaService = new MediaService(getDatabaseConfig());
+            }
+        }
+        return mediaService;
     }
 
     private AlertRepository getAlertRepository() {

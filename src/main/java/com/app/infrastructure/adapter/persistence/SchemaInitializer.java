@@ -101,6 +101,49 @@ public class SchemaInitializer {
                 )
             """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS categories (
+                    id VARCHAR(50) PRIMARY KEY,
+                    name VARCHAR(120),
+                    type VARCHAR(50),
+                    active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS contract_templates (
+                    id VARCHAR(36) PRIMARY KEY,
+                    contract_type VARCHAR(20),
+                    language_id VARCHAR(36),
+                    document_path VARCHAR(512),
+                    original_file_name VARCHAR(255),
+                    file_extension VARCHAR(10),
+                    active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS media (
+                    id VARCHAR(36) PRIMARY KEY,
+                    type VARCHAR(50),
+                    url VARCHAR(255),
+                    file_extension VARCHAR(10),
+                    neighbourhood_id VARCHAR(36),
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
