@@ -58,6 +58,7 @@ public class MainController {
     public void setServiceContext(ServiceContext serviceContext) {
         this.serviceContext = serviceContext;
         this.incidentSyncManager = new IncidentSyncManager(serviceContext.getIncidentService());
+        this.serviceContext.getBackgroundSyncManager().startAutomaticSyncOnStartup();
     }
 
     public void setViews(Parent homeView, Parent settingsView, Parent themeView, Parent pluginView, Parent queryView, Parent incidentView) {
@@ -115,6 +116,7 @@ public class MainController {
         AppState.getInstance().setSyncing(true);
         CompletableFuture.runAsync(() -> {
             try {
+                // S'assure que le SyncManager est lancé s'il y a un retour réseau
                 incidentSyncManager.syncWithBackend(conflict -> conflict.localIncident());
             } catch (Exception e) {
                 DailyLogger.logError("MainController", "Sync failed", e);

@@ -49,10 +49,6 @@ public class SchemaInitializer {
                 )
             """);
 
-            addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
-            addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
-            addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
-
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS alerts (
                     id VARCHAR(36) PRIMARY KEY,
@@ -67,6 +63,47 @@ public class SchemaInitializer {
                     sync_status VARCHAR(50)
                 )
             """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS neighbourhoods (
+                    id VARCHAR(36) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    city VARCHAR(255) NOT NULL,
+                    postal_code VARCHAR(20),
+                    country_code VARCHAR(2) NOT NULL,
+                    estimated_population INTEGER,
+                    polygon TEXT,
+                    area INTEGER,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS addresses (
+                    id VARCHAR(36) PRIMARY KEY,
+                    street_number VARCHAR(20) NOT NULL,
+                    address_line_2 VARCHAR(255),
+                    street_name VARCHAR(255) NOT NULL,
+                    city VARCHAR(255) NOT NULL,
+                    postal_code VARCHAR(20) NOT NULL,
+                    region VARCHAR(255),
+                    country_code VARCHAR(5) NOT NULL,
+                    location TEXT,
+                    active BOOLEAN DEFAULT 1,
+                    neighbourhood_id VARCHAR(36),
+                    user_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50),
+                    FOREIGN KEY (neighbourhood_id) REFERENCES neighbourhoods(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """);
+
+            addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
+            addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
+            addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
 
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize database schema", e);
