@@ -54,28 +54,30 @@ public class BackgroundSyncManager {
             while (true) {
                 try {
                     if (ConnectivityUtil.checkConnectivity()) {
-                        userService.syncUsers();
-                        neighbourhoodSyncManager.syncWithBackend(conflict -> conflict.server());
-                        addressSyncManager.syncWithBackend(conflict -> conflict.server());
-                        categorySyncManager.syncWithBackend(conflict -> conflict.server());
-                        contractTemplateSyncManager.syncWithBackend(conflict -> conflict.server());
-                        mediaSyncManager.syncWithBackend(conflict -> conflict.server());
-                        eventTagSyncManager.syncWithBackend(conflict -> conflict.server());
-                        eventSyncManager.syncWithBackend(conflict -> conflict.server());
-                        eventPlanningSyncManager.syncWithBackend(conflict -> conflict.server());
-                        eventParticipationSyncManager.syncWithBackend(conflict -> conflict.server());
-                        incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
+                        try {
+                            userService.syncUsers();
+                            neighbourhoodSyncManager.syncWithBackend(conflict -> conflict.server());
+                            addressSyncManager.syncWithBackend(conflict -> conflict.server());
+                            categorySyncManager.syncWithBackend(conflict -> conflict.server());
+                            contractTemplateSyncManager.syncWithBackend(conflict -> conflict.server());
+                            mediaSyncManager.syncWithBackend(conflict -> conflict.server());
+                            eventTagSyncManager.syncWithBackend(conflict -> conflict.server());
+                            eventSyncManager.syncWithBackend(conflict -> conflict.server());
+                            eventPlanningSyncManager.syncWithBackend(conflict -> conflict.server());
+                            eventParticipationSyncManager.syncWithBackend(conflict -> conflict.server());
+                            incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
+                        } catch (Exception dbError) {
+                            DailyLogger.logError("Sync", "Erreur BDD au démarrage, synchro ignorée: " + dbError.getMessage(), dbError);
+                        }
                         break;
                     }
                     Thread.sleep(5000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 } catch (Exception e) {
-                    DailyLogger.logError("Sync", "Erreur: " + e.getMessage(), e);
-                    try {
-                        Thread.sleep(15000);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+                    DailyLogger.logError("Sync", "Erreur inattendue: " + e.getMessage(), e);
+                    break;
                 }
             }
         });
