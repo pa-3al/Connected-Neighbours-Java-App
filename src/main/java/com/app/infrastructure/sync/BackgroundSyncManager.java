@@ -17,6 +17,8 @@ public class BackgroundSyncManager {
     private final MediaSyncManager mediaSyncManager;
     private final EventSyncManager eventSyncManager;
     private final EventTagSyncManager eventTagSyncManager;
+    private final EventPlanningSyncManager eventPlanningSyncManager;
+    private final EventParticipationSyncManager eventParticipationSyncManager;
 
     public BackgroundSyncManager(
             UserService userService,
@@ -27,7 +29,9 @@ public class BackgroundSyncManager {
             ContractTemplateService contractTemplateService,
             MediaService mediaService,
             EventService eventService,
-            EventTagService eventTagService
+            EventTagService eventTagService,
+            EventPlanningService eventPlanningService,
+            EventParticipationService eventParticipationService
     ) {
         this.userService = userService;
         ConfigProvider config = new ConfigProvider();
@@ -36,12 +40,13 @@ public class BackgroundSyncManager {
         this.incidentSyncManager = new IncidentSyncManager(incidentService);
         this.addressSyncManager = new AddressSyncManager(addressService);
         this.neighbourhoodSyncManager = new NeighbourhoodSyncManager(neighbourhoodService);
-
         this.categorySyncManager = new CategorySyncManager(categoryService, config, authClient);
         this.contractTemplateSyncManager = new ContractTemplateSyncManager(contractTemplateService, config, authClient);
         this.mediaSyncManager = new MediaSyncManager(mediaService, config, authClient);
         this.eventSyncManager = new EventSyncManager(eventService, config, authClient);
         this.eventTagSyncManager = new EventTagSyncManager(eventTagService, config, authClient);
+        this.eventPlanningSyncManager = new EventPlanningSyncManager(eventPlanningService, config, authClient);
+        this.eventParticipationSyncManager = new EventParticipationSyncManager(eventParticipationService, config, authClient);
     }
 
     public void startAutomaticSyncOnStartup() {
@@ -57,6 +62,8 @@ public class BackgroundSyncManager {
                         mediaSyncManager.syncWithBackend(conflict -> conflict.server());
                         eventTagSyncManager.syncWithBackend(conflict -> conflict.server());
                         eventSyncManager.syncWithBackend(conflict -> conflict.server());
+                        eventPlanningSyncManager.syncWithBackend(conflict -> conflict.server());
+                        eventParticipationSyncManager.syncWithBackend(conflict -> conflict.server());
                         incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
                         break;
                     }

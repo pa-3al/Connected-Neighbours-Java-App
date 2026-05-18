@@ -171,6 +171,31 @@ public class SchemaInitializer {
                 )
             """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_plannings (
+                    id VARCHAR(36) PRIMARY KEY,
+                    start_date TIMESTAMP,
+                    end_date TIMESTAMP,
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_participations (
+                    id VARCHAR(36) PRIMARY KEY,
+                    subscribed_at TIMESTAMP,
+                    status VARCHAR(50),
+                    signature_url VARCHAR(255),
+                    rejected_reason VARCHAR(255),
+                    user_id VARCHAR(36),
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
