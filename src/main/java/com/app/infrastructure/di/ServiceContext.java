@@ -12,6 +12,7 @@ import com.app.infrastructure.adapter.plugin.HeadlessPluginContext;
 import com.app.infrastructure.adapter.query.JFlexQueryAdapter;
 import com.app.infrastructure.adapter.update.HttpUpdateAdapter;
 import com.app.infrastructure.config.ConfigProvider;
+import com.app.infrastructure.sync.BackgroundSyncManager;
 import com.app.plugin.PluginContext;
 
 public class ServiceContext {
@@ -27,26 +28,36 @@ public class ServiceContext {
     private volatile FileSystemPluginAdapter pluginAdapter;
     private volatile HttpUpdateAdapter updateAdapter;
     private volatile HttpAdminAuthRepository authRepository;
-    
+
+    private volatile BackgroundSyncManager backgroundSyncManager;
     private volatile DatabaseConfig databaseConfig;
     private volatile IncidentRepository incidentRepository;
     private volatile AlertRepository alertRepository;
     private volatile UserRepository userRepository;
-    
+
     private volatile IncidentService incidentService;
     private volatile AlertService alertService;
     private volatile AuthService authService;
     private volatile UserService userService;
+    private volatile AddressService addressService;
+    private volatile NeighbourhoodService neighbourhoodService;
+    private volatile CategoryService categoryService;
+    private volatile ContractTemplateService contractTemplateService;
+    private volatile MediaService mediaService;
+    private volatile EventService eventService;
+    private volatile EventTagService eventTagService;
+    private volatile EventPlanningService eventPlanningService;
+    private volatile EventParticipationService eventParticipationService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
         this.configProvider = new ConfigProvider();
     }
-    
+
     public void initializeDatabase() {
         new SchemaInitializer(getDatabaseConfig()).initialize();
     }
-    
+
     public IncidentService getIncidentService() {
         if (incidentService == null) {
             synchronized (this) {
@@ -82,15 +93,37 @@ public class ServiceContext {
         return alertService;
     }
 
+    public AddressService getAddressService() {
+        if (addressService == null) {
+            synchronized (this) {
+                if (addressService == null) {
+                    addressService = new AddressService(getDatabaseConfig());
+                }
+            }
+        }
+        return addressService;
+    }
+
+    public NeighbourhoodService getNeighbourhoodService() {
+        if (neighbourhoodService == null) {
+            synchronized (this) {
+                if (neighbourhoodService == null) {
+                    neighbourhoodService = new NeighbourhoodService(getDatabaseConfig());
+                }
+            }
+        }
+        return neighbourhoodService;
+    }
+
     public PluginService getPluginService() {
         if (pluginService == null) {
             synchronized (this) {
                 if (pluginService == null) {
                     pluginService = new PluginService(
-                        getPluginAdapter(), 
-                        getPluginContext(), 
-                        getI18nPort(), 
-                        getLoggerPort()
+                            getPluginAdapter(),
+                            getPluginContext(),
+                            getI18nPort(),
+                            getLoggerPort()
                     );
                 }
             }
@@ -143,13 +176,36 @@ public class ServiceContext {
         if (pluginContext == null) {
             synchronized (this) {
                 if (pluginContext == null) {
-                    pluginContext = isHeadless 
-                        ? new HeadlessPluginContext() 
-                        : new DefaultPluginContext();
+                    pluginContext = isHeadless
+                            ? new HeadlessPluginContext()
+                            : new DefaultPluginContext();
                 }
             }
         }
         return pluginContext;
+    }
+
+    public BackgroundSyncManager getBackgroundSyncManager() {
+        if (backgroundSyncManager == null) {
+            synchronized (this) {
+                if (backgroundSyncManager == null) {
+                    backgroundSyncManager = new BackgroundSyncManager(
+                            getUserService(),
+                            getIncidentService(),
+                            getAddressService(),
+                            getNeighbourhoodService(),
+                            getCategoryService(),
+                            getContractTemplateService(),
+                            getMediaService(),
+                            getEventService(),
+                            getEventTagService(),
+                            getEventPlanningService(),
+                            getEventParticipationService()
+                    );
+                }
+            }
+        }
+        return backgroundSyncManager;
     }
 
     public HttpUpdateAdapter getUpdateAdapter() {
@@ -201,9 +257,9 @@ public class ServiceContext {
             synchronized (this) {
                 if (pluginAdapter == null) {
                     pluginAdapter = new FileSystemPluginAdapter(
-                        configProvider.getPluginsPath(),
-                        configProvider.getPluginStatePath(),
-                        configProvider.getMaxPluginSizeBytes()
+                            configProvider.getPluginsPath(),
+                            configProvider.getPluginStatePath(),
+                            configProvider.getMaxPluginSizeBytes()
                     );
                 }
             }
@@ -231,6 +287,69 @@ public class ServiceContext {
             }
         }
         return userRepository;
+    }
+
+    public CategoryService getCategoryService() {
+        if (categoryService == null) {
+            synchronized (this) {
+                if (categoryService == null) categoryService = new CategoryService(getDatabaseConfig());
+            }
+        }
+        return categoryService;
+    }
+
+    public ContractTemplateService getContractTemplateService() {
+        if (contractTemplateService == null) {
+            synchronized (this) {
+                if (contractTemplateService == null) contractTemplateService = new ContractTemplateService(getDatabaseConfig());
+            }
+        }
+        return contractTemplateService;
+    }
+
+    public MediaService getMediaService() {
+        if (mediaService == null) {
+            synchronized (this) {
+                if (mediaService == null) mediaService = new MediaService(getDatabaseConfig());
+            }
+        }
+        return mediaService;
+    }
+
+    public EventService getEventService() {
+        if (eventService == null) {
+            synchronized (this) {
+                if (eventService == null) eventService = new EventService(getDatabaseConfig());
+            }
+        }
+        return eventService;
+    }
+
+    public EventTagService getEventTagService() {
+        if (eventTagService == null) {
+            synchronized (this) {
+                if (eventTagService == null) eventTagService = new EventTagService(getDatabaseConfig());
+            }
+        }
+        return eventTagService;
+    }
+
+    public EventPlanningService getEventPlanningService() {
+        if (eventPlanningService == null) {
+            synchronized (this) {
+                if (eventPlanningService == null) eventPlanningService = new EventPlanningService(getDatabaseConfig());
+            }
+        }
+        return eventPlanningService;
+    }
+
+    public EventParticipationService getEventParticipationService() {
+        if (eventParticipationService == null) {
+            synchronized (this) {
+                if (eventParticipationService == null) eventParticipationService = new EventParticipationService(getDatabaseConfig());
+            }
+        }
+        return eventParticipationService;
     }
 
     private AlertRepository getAlertRepository() {

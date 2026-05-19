@@ -49,10 +49,6 @@ public class SchemaInitializer {
                 )
             """);
 
-            addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
-            addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
-            addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
-
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS alerts (
                     id VARCHAR(36) PRIMARY KEY,
@@ -67,6 +63,142 @@ public class SchemaInitializer {
                     sync_status VARCHAR(50)
                 )
             """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS neighbourhoods (
+                    id VARCHAR(36) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    city VARCHAR(255) NOT NULL,
+                    postal_code VARCHAR(20),
+                    country_code VARCHAR(2) NOT NULL,
+                    estimated_population INTEGER,
+                    polygon TEXT,
+                    area INTEGER,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS addresses (
+                    id VARCHAR(36) PRIMARY KEY,
+                    street_number VARCHAR(20) NOT NULL,
+                    address_line_2 VARCHAR(255),
+                    street_name VARCHAR(255) NOT NULL,
+                    city VARCHAR(255) NOT NULL,
+                    postal_code VARCHAR(20) NOT NULL,
+                    region VARCHAR(255),
+                    country_code VARCHAR(5) NOT NULL,
+                    location TEXT,
+                    active BOOLEAN DEFAULT 1,
+                    neighbourhood_id VARCHAR(36),
+                    user_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50),
+                    FOREIGN KEY (neighbourhood_id) REFERENCES neighbourhoods(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS categories (
+                    id VARCHAR(50) PRIMARY KEY,
+                    name VARCHAR(120),
+                    type VARCHAR(50),
+                    active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS contract_templates (
+                    id VARCHAR(36) PRIMARY KEY,
+                    contract_type VARCHAR(20),
+                    language_id VARCHAR(36),
+                    document_path VARCHAR(512),
+                    original_file_name VARCHAR(255),
+                    file_extension VARCHAR(10),
+                    active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS media (
+                    id VARCHAR(36) PRIMARY KEY,
+                    type VARCHAR(50),
+                    url VARCHAR(255),
+                    file_extension VARCHAR(10),
+                    neighbourhood_id VARCHAR(36),
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_tags (
+                    name VARCHAR(50) PRIMARY KEY,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    id VARCHAR(36) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description VARCHAR(2048) NOT NULL,
+                    points INTEGER DEFAULT 1,
+                    real_money_price REAL DEFAULT 0.0,
+                    require_validation BOOLEAN DEFAULT 0,
+                    signature_url VARCHAR(255),
+                    contract_id VARCHAR(36),
+                    address_id VARCHAR(36),
+                    created_by_user_id VARCHAR(36),
+                    approved_by_moderator_id VARCHAR(36),
+                    approved_by_admin_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_plannings (
+                    id VARCHAR(36) PRIMARY KEY,
+                    start_date TIMESTAMP,
+                    end_date TIMESTAMP,
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS event_participations (
+                    id VARCHAR(36) PRIMARY KEY,
+                    subscribed_at TIMESTAMP,
+                    status VARCHAR(50),
+                    signature_url VARCHAR(255),
+                    rejected_reason VARCHAR(255),
+                    user_id VARCHAR(36),
+                    event_id VARCHAR(36),
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
+            addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
+            addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
 
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize database schema", e);
