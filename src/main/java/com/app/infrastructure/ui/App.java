@@ -123,6 +123,10 @@ public class App extends Application {
             incidentLoader.setControllerFactory(param -> new IncidentController(serviceContext.getIncidentService(), serviceContext.getUserService()));
             Parent incidentView = incidentLoader.load();
 
+            FXMLLoader dashboardNeighbourhoodLoader = new FXMLLoader(App.class.getResource("/com/app/view/DashboardNeighbourhoodView.fxml"));
+            dashboardNeighbourhoodLoader.setResources(bundle);
+            Parent dashboardNeighbourhoodView = dashboardNeighbourhoodLoader.load();
+
             mainController.setViews(homeView, settingsView, themeView, pluginView, queryView, incidentView);
             scene = new Scene(root, 1000, 700);
             com.app.infrastructure.util.KeyboardShortcutsHandler.attachTo(scene);
