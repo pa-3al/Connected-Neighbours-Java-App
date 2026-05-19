@@ -18,7 +18,6 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
-          cache: maven
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
@@ -31,3 +30,4 @@ jobs:
         with:
           name: application-jar
           path: target/*.jar
+          retention-days: 1
