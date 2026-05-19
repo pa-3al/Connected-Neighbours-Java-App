@@ -19,5 +19,6 @@ class UpdateInfoTest {
         assertEquals(LocalDate.now(), updateInfo.releaseDate());
         assertFalse(updateInfo.mandatory());
         assertEquals("1.0.0", updateInfo.minVersion());
+        assertEquals(null, updateInfo.patchUrl());
     }
 }

@@ -7,9 +7,10 @@ public record UpdateInfo(
     String changelog,
     LocalDate releaseDate,
     boolean mandatory,
-    String minVersion
+    String minVersion,
+    String patchUrl
 ) {
     public UpdateInfo(String version, String url, String description) {
-        this(version, url, description, "", LocalDate.now(), false, "1.0.0");
+        this(version, url, description, "", LocalDate.now(), false, "1.0.0", null);
     }
 }

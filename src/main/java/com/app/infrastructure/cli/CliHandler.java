@@ -87,6 +87,7 @@ public class CliHandler {
             UpdateInfo info = context.getUpdateService().checkForUpdates().get();
             if (info != null) {
                 System.out.println("Update available: v" + info.version());
+                System.out.println("Download URL: " + info.downloadUrl());
                 System.out.println("Run with graphical interface to update.");
             } else {
                 System.out.println("No updates available. You are on the latest version (" + context.getUpdateService().getCurrentVersion() + ").");
