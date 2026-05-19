@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.ColumnConstraints?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.app.infrastructure.ui.DashboardNeighbourhoodController"
+      spacing="15" style="-fx-padding: 20;"
+      alignment="CENTER">
+
+    <GridPane hgap="20" vgap="20" VBox.vgrow="ALWAYS">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50"/>
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints percentHeight="50"/>
+            <RowConstraints percentHeight="50"/>
+        </rowConstraints>
+
+        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <BarChart fx:id="populationChart" title="%dashboard.neighbourhood.chart.population.title" legendVisible="false" animated="false">
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisPopulation" label="%dashboard.neighbourhood.chart.xaxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis fx:id="yAxisPopulation" label="%dashboard.neighbourhood.chart.yaxis"/>
+                </yAxis>
+            </BarChart>
+            <Label fx:id="noDataLabelPop" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <PieChart fx:id="countryPieChart" title="%dashboard.neighbourhood.chart.country.title" animated="false"/>
+            <Label fx:id="noDataLabelCountry" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">
+            <BarChart fx:id="usersPerNeighbourhoodChart" title="%dashboard.neighbourhood.chart.users.title" legendVisible="false" animated="false">
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisUsers" label="%dashboard.neighbourhood.chart.xaxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis fx:id="yAxisUsers" label="Utilisateurs"/>
+                </yAxis>
+            </BarChart>
+            <Label fx:id="noDataLabelUsers" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
+        </StackPane>
+    </GridPane>
+</VBox>

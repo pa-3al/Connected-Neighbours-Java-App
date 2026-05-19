@@ -18,9 +18,7 @@
         <tabs>
             <Tab fx:id="tabNeighbourhoods" text="%home.dashboard.tab.neighbourhoods">
                 <content>
-                    <VBox alignment="CENTER" style="-fx-padding: 40;">
-                        <Label text="%home.dashboard.tab.empty" style="-fx-font-size: 14px; -fx-opacity: 0.6;"/>
-                    </VBox>
+                    <fx:include source="DashboardNeighbourhoodView.fxml"/>
                 </content>
             </Tab>
             <Tab fx:id="tabEvents" text="%home.dashboard.tab.events">
