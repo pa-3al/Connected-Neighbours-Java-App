@@ -57,7 +57,7 @@ class HttpUpdateAdapterTest {
         when(onlineSupplier.get()).thenReturn(true);
         when(configProvider.getUpdateCheckUrl()).thenReturn(baseUrl + "/update");
 
-        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo();
+        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo("1.0.0");
         UpdateInfo result = future.get();
         assertNotNull(result);
     }
@@ -71,7 +71,7 @@ class HttpUpdateAdapterTest {
         when(onlineSupplier.get()).thenReturn(true);
         when(configProvider.getUpdateCheckUrl()).thenReturn(baseUrl + "/update");
 
-        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo();
+        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo("1.0.0");
         UpdateInfo result = future.get();
         assertNull(result);
     }
@@ -79,7 +79,7 @@ class HttpUpdateAdapterTest {
     @Test
     void fetchLatestUpdateInfoShouldThrowExceptionWhenOffline() {
         when(onlineSupplier.get()).thenReturn(false);
-        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo();
+        CompletableFuture<UpdateInfo> future = adapter.fetchLatestUpdateInfo("1.0.0");
         ExecutionException exception = assertThrows(ExecutionException.class, future::get);
         assertTrue(exception.getCause() instanceof RuntimeException);
     }
