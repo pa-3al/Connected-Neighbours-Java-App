@@ -4,7 +4,7 @@
     
     <groupId>com.app</groupId>
     <artifactId>Connected-Neighbours-Java-App</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>Connected-Neighbours-Java-App</name>
     
     <properties>

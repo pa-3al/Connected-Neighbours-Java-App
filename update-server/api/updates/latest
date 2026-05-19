@@ -1,0 +1,10 @@
+{
+  "version": "1.0.1",
+  "downloadUrl": "http://localhost:8000/api/updates/1.0.1/Connected-Neighbours-Java-App-1.0.1.jar",
+  "description": "Test update 1.0.1",
+  "changelog": "Test de mise a jour automatique",
+  "releaseDate": "2026-05-19",
+  "mandatory": false,
+  "minVersion": "1.0.0",
+  "patchUrl": null
+}
