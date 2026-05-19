@@ -5,6 +5,6 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 public interface UpdateRepository {
-    CompletableFuture<UpdateInfo> fetchLatestUpdateInfo();
+    CompletableFuture<UpdateInfo> fetchLatestUpdateInfo(String currentVersion);
     CompletableFuture<Path> downloadUpdate(String downloadUrl, Path targetPath, Consumer<DownloadProgress> progressCallback);
 }

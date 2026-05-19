@@ -66,6 +66,7 @@ public class SettingsController {
     @FXML private Button saveDbButton;
 
     private com.app.domain.model.UpdateInfo pendingUpdate;
+    private Path downloadedUpdate;
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
 
     public SettingsController(CheckUpdateUseCase checkUpdateUseCase, ThemeRepository themeRepository) {
@@ -246,6 +247,7 @@ public class SettingsController {
                     checkButton.setDisable(false);
                     if (info != null) {
                         pendingUpdate = info;
+                        downloadedUpdate = null;
                         statusLabel.textProperty().unbind();
                         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.found", info.version()));
                         log(i18n.get("settings.updates.status.found", info.version()));
@@ -261,6 +263,7 @@ public class SettingsController {
                         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.uptodate"));
                         log(i18n.get("settings.updates.status.uptodate"));
                         pendingUpdate = null;
+                        downloadedUpdate = null;
                         resetDownloadUI();
                     }
                 }))
@@ -296,6 +299,7 @@ public class SettingsController {
                     });
                 })
                 .thenAccept(path -> Platform.runLater(() -> {
+                    downloadedUpdate = path;
                     log("✅ " + i18n.get("settings.updates.status.ready"));
                     statusLabel.textProperty().unbind();
                     statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.ready"));
@@ -328,6 +332,9 @@ public class SettingsController {
             if (response == ButtonType.OK) {
                 log("Redémarrage...");
                 com.app.infrastructure.util.DailyLogger.logWarn("Settings", "User confirmed update installation. Application restarting.");
+                if (downloadedUpdate != null) {
+                    checkUpdateUseCase.applyUpdate(downloadedUpdate);
+                }
             } else {
                 com.app.infrastructure.util.DailyLogger.logInfo("Settings", "User cancelled update installation");
             }

@@ -56,6 +56,9 @@ public class App extends Application {
 
             boolean isInitiallyOnline = ConnectivityUtil.checkConnectivity();
             AppState.getInstance().setOnline(isInitiallyOnline);
+            if (isInitiallyOnline) {
+                runAutomaticUpdate(updateService);
+            }
 
             if (serviceContext.isAuthBypassEnabled()) {
                 String bypassToken = serviceContext.getAuthBypassToken();
@@ -149,6 +152,22 @@ public class App extends Application {
 
     public static void main(String[] args) {
         launch();
+    }
+
+    private void runAutomaticUpdate(UpdateService updateService) {
+        updateService.installLatestUpdateIfAvailable()
+                .exceptionally(ex -> {
+                    DailyLogger.logError("App", "Automatic update failed", getRootCause(ex));
+                    return false;
+                });
+    }
+
+    private Throwable getRootCause(Throwable ex) {
+        Throwable cause = ex;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 
     private boolean attemptAutoLogin() {

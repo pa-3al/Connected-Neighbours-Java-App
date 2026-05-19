@@ -32,15 +32,19 @@ public class HttpUpdateAdapter implements UpdateRepository {
             .build();
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper.findAndRegisterModules();
     }
     @Override
-    public CompletableFuture<UpdateInfo> fetchLatestUpdateInfo() {
+    public CompletableFuture<UpdateInfo> fetchLatestUpdateInfo(String currentVersion) {
         return CompletableFuture.supplyAsync(() -> {
             if (!onlineSupplier.get()) {
                 throw new RuntimeException("Mode hors ligne : Impossible de vérifier les mises à jour.");
             }
             try {
-                String url = configProvider.getUpdateCheckUrl();
+                String version = currentVersion != null ? currentVersion : "";
+                String url = configProvider.getUpdateCheckUrl()
+                    .replace("{version}", version)
+                    .replace("{currentVersion}", version);
                 validateHttpsUrl(url);
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -49,7 +53,7 @@ public class HttpUpdateAdapter implements UpdateRepository {
                     .build();
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) {
-                    return objectMapper.readValue(response.body(), UpdateInfo.class);
+                    return normalizeUpdateInfo(objectMapper.readValue(response.body(), UpdateInfo.class), currentVersion);
                 } else if (response.statusCode() == 204) {
                     return null;
                 } else {
@@ -81,6 +85,10 @@ public class HttpUpdateAdapter implements UpdateRepository {
                 long totalBytes = response.headers()
                     .firstValueAsLong("Content-Length")
                     .orElse(-1);
+                Path parent = targetPath.toAbsolutePath().getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
                 try (InputStream in = response.body();
                      OutputStream out = Files.newOutputStream(targetPath, 
                          StandardOpenOption.CREATE, 
@@ -102,6 +110,33 @@ public class HttpUpdateAdapter implements UpdateRepository {
                 throw new RuntimeException("Failed to download update: " + e.getMessage(), e);
             }
         });
+    }
+    private UpdateInfo normalizeUpdateInfo(UpdateInfo info, String currentVersion) {
+        if (info == null || info.version() == null || info.version().isBlank()) {
+            return info;
+        }
+        String downloadUrl = info.downloadUrl();
+        if (downloadUrl == null || downloadUrl.isBlank()) {
+            downloadUrl = configProvider.getUpdateJarUrl(info.version());
+        }
+        String patchUrl = info.patchUrl();
+        if ((patchUrl == null || patchUrl.isBlank())
+                && currentVersion != null
+                && !currentVersion.isBlank()
+                && !currentVersion.equals(info.version())
+                && configProvider.isDifferentialUpdateEnabled()) {
+            patchUrl = configProvider.getUpdatePatchUrl(currentVersion, info.version());
+        }
+        return new UpdateInfo(
+            info.version(),
+            downloadUrl,
+            info.description(),
+            info.changelog(),
+            info.releaseDate(),
+            info.mandatory(),
+            info.minVersion(),
+            patchUrl
+        );
     }
     private static void validateHttpsUrl(String url) {
         if (url == null || url.isBlank()) {

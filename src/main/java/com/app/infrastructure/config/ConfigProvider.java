@@ -83,6 +83,26 @@ public class ConfigProvider {
         return properties.getProperty("app.update.checkUrl", "http://localhost:8000/api/updates/latest");
     }
 
+    public String getUpdateBaseUrl() {
+        return properties.getProperty("app.update.baseUrl", "http://localhost:8000/api/updates");
+    }
+
+    public String getUpdateArtifactId() {
+        return properties.getProperty("app.update.artifactId", "Connected-Neighbours-Java-App");
+    }
+
+    public String getUpdateJarUrl(String version) {
+        return joinUrl(getUpdateBaseUrl(), version, getUpdateArtifactId() + "-" + version + ".jar");
+    }
+
+    public String getUpdatePatchUrl(String currentVersion, String targetVersion) {
+        return joinUrl(getUpdateBaseUrl(), targetVersion, "patches", currentVersion + "-to-" + targetVersion + ".jar");
+    }
+
+    public boolean isDifferentialUpdateEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("app.update.differential.enabled", "true"));
+    }
+
     public int getUpdateTimeoutSeconds() {
         return Integer.parseInt(properties.getProperty("app.update.timeout", "30"));
     }
@@ -169,5 +189,26 @@ public class ConfigProvider {
 
     public long getMaxPluginSizeBytes() {
         return Long.parseLong(properties.getProperty("app.plugins.max.size", "10000000"));
+    }
+
+    private String joinUrl(String... parts) {
+        StringBuilder url = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            String cleanPart = part;
+            if (url.length() > 0) {
+                while (cleanPart.startsWith("/")) {
+                    cleanPart = cleanPart.substring(1);
+                }
+                while (url.charAt(url.length() - 1) == '/') {
+                    url.deleteCharAt(url.length() - 1);
+                }
+                url.append('/');
+            }
+            url.append(cleanPart);
+        }
+        return url.toString();
     }
 }
