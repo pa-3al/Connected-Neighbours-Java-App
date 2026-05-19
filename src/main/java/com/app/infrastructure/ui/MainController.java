@@ -50,6 +50,7 @@ public class MainController {
 
     private double lastDividerPosition = 0.25;
     private boolean isSidebarCollapsed = false;
+    private boolean backgroundSyncStarted = false;
 
     public VBox getSidebar() {
         return sidebar;
@@ -58,6 +59,13 @@ public class MainController {
     public void setServiceContext(ServiceContext serviceContext) {
         this.serviceContext = serviceContext;
         this.incidentSyncManager = new IncidentSyncManager(serviceContext.getIncidentService());
+    }
+
+    public void startBackgroundSync() {
+        if (serviceContext == null || backgroundSyncStarted) {
+            return;
+        }
+        backgroundSyncStarted = true;
         this.serviceContext.getBackgroundSyncManager().startAutomaticSyncOnStartup();
     }
 

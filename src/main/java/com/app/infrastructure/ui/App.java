@@ -9,6 +9,7 @@ import com.app.domain.service.AuthService;
 import com.app.domain.service.PluginService;
 import com.app.domain.service.ThemeService;
 import com.app.domain.service.UpdateService;
+import com.app.domain.model.UpdateInfo;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.adapter.auth.TokenManager;
 import com.app.infrastructure.adapter.theme.JavaFXThemeAdapter;
@@ -21,6 +22,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -56,9 +58,6 @@ public class App extends Application {
 
             boolean isInitiallyOnline = ConnectivityUtil.checkConnectivity();
             AppState.getInstance().setOnline(isInitiallyOnline);
-            if (isInitiallyOnline) {
-                runAutomaticUpdate(updateService);
-            }
 
             if (serviceContext.isAuthBypassEnabled()) {
                 String bypassToken = serviceContext.getAuthBypassToken();
@@ -140,6 +139,11 @@ public class App extends Application {
                 AppState.getInstance().shutdown();
             });
             stage.show();
+            if (isInitiallyOnline) {
+                runAutomaticUpdate(updateService, mainController::startBackgroundSync);
+            } else {
+                mainController.startBackgroundSync();
+            }
 
         } catch (RuntimeException | IOException t) {
             try (java.io.PrintWriter pw = new java.io.PrintWriter("startup_error.log")) {
@@ -154,12 +158,39 @@ public class App extends Application {
         launch();
     }
 
-    private void runAutomaticUpdate(UpdateService updateService) {
-        updateService.installLatestUpdateIfAvailable()
+    private void runAutomaticUpdate(UpdateService updateService, Runnable afterUpdateCheck) {
+        updateService.checkForUpdates()
+                .thenCompose(info -> {
+                    if (info == null) {
+                        return java.util.concurrent.CompletableFuture.completedFuture(false);
+                    }
+                    Platform.runLater(() -> showUpdateNotice(info));
+                    return updateService.downloadUpdate(info, null)
+                            .thenApply(path -> {
+                                updateService.applyUpdate(path);
+                                return true;
+                            });
+                })
+                .thenAccept(updateStarted -> {
+                    if (!updateStarted) {
+                        Platform.runLater(afterUpdateCheck);
+                    }
+                })
                 .exceptionally(ex -> {
                     DailyLogger.logError("App", "Automatic update failed", getRootCause(ex));
-                    return false;
+                    Platform.runLater(afterUpdateCheck);
+                    return null;
                 });
+    }
+
+    private void showUpdateNotice(UpdateInfo info) {
+        com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(i18n.get("dialog.update.available.title"));
+        alert.setHeaderText(i18n.get("dialog.update.available.header", info.version()));
+        alert.setContentText(i18n.get("dialog.update.available.content"));
+        alert.initOwner(mainStage);
+        alert.show();
     }
 
     private Throwable getRootCause(Throwable ex) {
