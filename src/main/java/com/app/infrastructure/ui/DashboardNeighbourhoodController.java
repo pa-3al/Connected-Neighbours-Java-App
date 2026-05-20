@@ -6,45 +6,41 @@ import com.app.infrastructure.adapter.persistence.JdbcNeighbourhoodRepository;
 import com.app.infrastructure.adapter.persistence.JdbcAddressRepository;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
 public class DashboardNeighbourhoodController {
 
-    @FXML
-    private BarChart<String, Number> populationChart;
-    @FXML
-    private CategoryAxis xAxisPopulation;
-    @FXML
-    private NumberAxis yAxisPopulation;
-    @FXML
-    private Label noDataLabelPop;
+    @FXML private VBox rootNode;
 
-    @FXML
-    private PieChart countryPieChart;
-    @FXML
-    private Label noDataLabelCountry;
+    @FXML private BarChart<String, Number> populationChart;
+    @FXML private CategoryAxis xAxisPopulation;
+    @FXML private NumberAxis yAxisPopulation;
+    @FXML private Label noDataLabelPop;
 
-    @FXML
-    private BarChart<String, Number> usersPerNeighbourhoodChart;
-    @FXML
-    private CategoryAxis xAxisUsers;
-    @FXML
-    private NumberAxis yAxisUsers;
-    @FXML
-    private Label noDataLabelUsers;
+    @FXML private PieChart countryPieChart;
+    @FXML private Label noDataLabelCountry;
+
+    @FXML private BarChart<String, Number> usersPerNeighbourhoodChart;
+    @FXML private CategoryAxis xAxisUsers;
+    @FXML private NumberAxis yAxisUsers;
+    @FXML private Label noDataLabelUsers;
 
     public DashboardNeighbourhoodController() {}
 
     @FXML
     public void initialize() {
+        applyDynamicTheme();
         refresh();
         AppState.getInstance().syncingProperty().addListener((observable, wasSyncing, isSyncing) -> {
             if (wasSyncing && !isSyncing) {
@@ -54,8 +50,28 @@ public class DashboardNeighbourhoodController {
     }
 
     public void refresh() {
+        applyDynamicTheme();
         Platform.runLater(this::loadChartData);
     }
+
+    // -------------------------------------------------------------------------
+    // Thème
+    // -------------------------------------------------------------------------
+
+    private void applyDynamicTheme() {
+        File cssFile = new File("src/main/resources/themes/dynamic.css");
+        if (cssFile.exists() && rootNode != null) {
+            if (!rootNode.getStyleClass().contains("root")) {
+                rootNode.getStyleClass().add("root");
+            }
+            rootNode.getStylesheets().clear();
+            rootNode.getStylesheets().add(cssFile.toURI().toString());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Chargement des données
+    // -------------------------------------------------------------------------
 
     private void loadChartData() {
         try {
@@ -87,9 +103,7 @@ public class DashboardNeighbourhoodController {
                 if (n.name() != null && n.estimatedPopulation() != null) {
                     int population = Math.max(0, n.estimatedPopulation());
                     series.getData().add(new XYChart.Data<>(n.name(), population));
-                    if (population > maxPop) {
-                        maxPop = population;
-                    }
+                    if (population > maxPop) maxPop = population;
                 }
             }
 
@@ -97,6 +111,7 @@ public class DashboardNeighbourhoodController {
                 configureNumberAxis(yAxisPopulation, maxPop);
                 populationChart.getData().clear();
                 populationChart.getData().add(series);
+                applyBarThemeClasses(series);
                 populationChart.setVisible(true);
                 noDataLabelPop.setVisible(false);
             } else {
@@ -115,7 +130,8 @@ public class DashboardNeighbourhoodController {
                 countryPieChart.getData().clear();
                 for (Map.Entry<String, Integer> entry : countryData.entrySet()) {
                     if (entry.getValue() != null && entry.getValue() > 0) {
-                        String country = entry.getKey() == null || entry.getKey().isBlank() ? "Inconnu" : entry.getKey();
+                        String country = entry.getKey() == null || entry.getKey().isBlank()
+                                ? "Inconnu" : entry.getKey();
                         countryPieChart.getData().add(new PieChart.Data(country, entry.getValue()));
                     }
                 }
@@ -123,6 +139,7 @@ public class DashboardNeighbourhoodController {
                     displayNoDataCountry();
                     return;
                 }
+                applyPieThemeClasses();
                 countryPieChart.setVisible(true);
                 noDataLabelCountry.setVisible(false);
             } else {
@@ -145,12 +162,11 @@ public class DashboardNeighbourhoodController {
 
                 for (Map.Entry<String, Integer> entry : usersData.entrySet()) {
                     if (entry.getValue() != null) {
-                        String neighbourhood = entry.getKey() == null || entry.getKey().isBlank() ? "Inconnu" : entry.getKey();
+                        String neighbourhood = entry.getKey() == null || entry.getKey().isBlank()
+                                ? "Inconnu" : entry.getKey();
                         int userCount = Math.max(0, entry.getValue());
                         series.getData().add(new XYChart.Data<>(neighbourhood, userCount));
-                        if (userCount > maxUsers) {
-                            maxUsers = userCount;
-                        }
+                        if (userCount > maxUsers) maxUsers = userCount;
                     }
                 }
 
@@ -160,9 +176,9 @@ public class DashboardNeighbourhoodController {
                 }
 
                 configureNumberAxis(yAxisUsers, maxUsers);
-
                 usersPerNeighbourhoodChart.getData().clear();
                 usersPerNeighbourhoodChart.getData().add(series);
+                applyBarThemeClasses(series);
                 usersPerNeighbourhoodChart.setVisible(true);
                 noDataLabelUsers.setVisible(false);
             } else {
@@ -172,6 +188,66 @@ public class DashboardNeighbourhoodController {
             displayNoDataUsers();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Application des classes CSS du thème dynamique
+    // -------------------------------------------------------------------------
+
+    /**
+     * Applique les classes CSS du thème sur les barres d'un BarChart.
+     *
+     * Les nœuds visuels des données ne sont créés par JavaFX qu'après le
+     * premier layout pass. On utilise un listener sur nodeProperty() pour
+     * s'assurer que la classe est bien appliquée dès que le nœud existe,
+     * même si ce n'est pas encore le cas au moment de l'appel.
+     */
+    private void applyBarThemeClasses(XYChart.Series<String, Number> series) {
+        int[] index = {0};
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            final int i = index[0];
+            if (data.getNode() != null) {
+                styleBarNode(data.getNode(), i);
+            } else {
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) styleBarNode(newNode, i);
+                });
+            }
+            index[0]++;
+        }
+    }
+
+    private void styleBarNode(Node bar, int index) {
+        bar.getStyleClass().removeIf(s -> s.startsWith("default-color"));
+        bar.getStyleClass().add("default-color" + (index % 8));
+    }
+
+    /**
+     * Applique les classes CSS du thème sur les tranches d'un PieChart.
+     * Même logique que pour les barres : listener sur nodeProperty().
+     */
+    private void applyPieThemeClasses() {
+        int[] index = {0};
+        for (PieChart.Data data : countryPieChart.getData()) {
+            final int i = index[0];
+            if (data.getNode() != null) {
+                stylePieNode(data.getNode(), i);
+            } else {
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) stylePieNode(newNode, i);
+                });
+            }
+            index[0]++;
+        }
+    }
+
+    private void stylePieNode(Node slice, int index) {
+        slice.getStyleClass().removeIf(s -> s.startsWith("default-color"));
+        slice.getStyleClass().add("default-color" + (index % 8));
+    }
+
+    // -------------------------------------------------------------------------
+    // Affichage "pas de données"
+    // -------------------------------------------------------------------------
 
     private void displayNoDataPop() {
         if (populationChart != null) populationChart.setVisible(false);
@@ -187,6 +263,10 @@ public class DashboardNeighbourhoodController {
         if (usersPerNeighbourhoodChart != null) usersPerNeighbourhoodChart.setVisible(false);
         if (noDataLabelUsers != null) noDataLabelUsers.setVisible(true);
     }
+
+    // -------------------------------------------------------------------------
+    // Utilitaires axe Y
+    // -------------------------------------------------------------------------
 
     private void configureNumberAxis(NumberAxis axis, double maxValue) {
         if (axis == null) return;
