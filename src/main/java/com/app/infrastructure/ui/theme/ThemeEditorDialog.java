@@ -203,6 +203,24 @@ public class ThemeEditorDialog {
         inputGrid.add(validationLabel, 0, row++, 3, 1);
         Tab inputTab = new Tab(i18n.get("theme.editor.tab.input_ui"), inputGrid);
 
+        GridPane chartGrid = createColorGrid();
+        row = 0;
+        chartGrid.add(createSectionLabel("Couleurs des graphiques"), 0, row++, 3, 1);
+        addRowWithPreview(chartGrid, row++, "Chart 1", chartColor1, chartPreview1);
+        addRowWithPreview(chartGrid, row++, "Chart 2", chartColor2, chartPreview2);
+        addRowWithPreview(chartGrid, row++, "Chart 3", chartColor3, chartPreview3);
+        addRowWithPreview(chartGrid, row++, "Chart 4", chartColor4, chartPreview4);
+        addRowWithPreview(chartGrid, row++, "Chart 5", chartColor5, chartPreview5);
+        addRowWithPreview(chartGrid, row++, "Chart 6", chartColor6, chartPreview6);
+        addRowWithPreview(chartGrid, row++, "Chart 7", chartColor7, chartPreview7);
+        addRowWithPreview(chartGrid, row++, "Chart 8", chartColor8, chartPreview8);
+        chartGrid.add(new Separator(), 0, row++, 3, 1);
+        BarChart<String, Number> editorBarChart = createBarChartPreview();
+        PieChart editorPieChart = createPieChartPreview();
+        chartGrid.add(editorBarChart, 0, row++, 3, 1);
+        chartGrid.add(editorPieChart, 0, row++, 3, 1);
+        Tab chartTab = new Tab("Charts", chartGrid);
+
         GridPane layoutGrid = createColorGrid();
         row = 0;
         layoutGrid.add(createSectionLabel(i18n.get("theme.preview.section.layout")), 0, row++, 3, 1);
