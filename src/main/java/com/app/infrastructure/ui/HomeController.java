@@ -22,10 +22,18 @@ public class HomeController {
     private DashboardNeighbourhoodController dashboardNeighbourhoodController;
 
     @FXML
+    private DashboardEventController dashboardEventController;
+
+    @FXML
     public void initialize() {
         tabNeighbourhoods.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
             if (isSelected && dashboardNeighbourhoodController != null) {
                 dashboardNeighbourhoodController.refresh();
+            }
+        });
+        tabEvents.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
+            if (isSelected && dashboardEventController != null) {
+                dashboardEventController.refresh();
             }
         });
     }
