@@ -112,6 +112,7 @@ public class App extends Application {
             FXMLLoader queryLoader = new FXMLLoader(App.class.getResource("/com/app/view/QueryView.fxml"));
             queryLoader.setResources(bundle);
             Parent queryView = queryLoader.load();
+            com.app.infrastructure.ui.QueryController queryController = queryLoader.getController();
 
             FXMLLoader homeLoader = new FXMLLoader(App.class.getResource("/com/app/view/HomeView.fxml"));
             homeLoader.setResources(bundle);
@@ -143,10 +144,15 @@ public class App extends Application {
             stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
             stage.setScene(scene);
             setStageIcon(stage);
+
             stage.setOnCloseRequest(e -> {
                 DailyLogger.getInstance().logAppShutdown();
+                if (queryController != null) {
+                    queryController.shutdown();
+                }
                 AppState.getInstance().shutdown();
             });
+
             stage.show();
             if (isInitiallyOnline) {
                 runAutomaticUpdate(updateService, mainController::startBackgroundSync);
@@ -164,7 +170,7 @@ public class App extends Application {
     }
 
     public static void main(String[] args) {
-        launch();
+        launch(args);
     }
 
     private void runAutomaticUpdate(UpdateService updateService, Runnable afterUpdateCheck) {
