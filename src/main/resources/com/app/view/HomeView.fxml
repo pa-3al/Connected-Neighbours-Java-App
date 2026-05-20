@@ -1,9 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.VBox?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.app.infrastructure.ui.HomeController"
-      spacing="20" alignment="CENTER" style="-fx-padding: 40;">
-    <Label text="%home.title" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
-    <Label text="%home.subtitle" style="-fx-font-size: 16px; -fx-opacity: 0.8;"/>
+      spacing="20" alignment="TOP_CENTER" style="-fx-padding: 20;">
+
+    <VBox spacing="5" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+        <Label text="%home.title" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+        <Label text="%home.subtitle" style="-fx-font-size: 16px; -fx-opacity: 0.8;"/>
+    </VBox>
+
+    <TabPane fx:id="dashboardTabPane" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+        <tabs>
+            <Tab fx:id="tabNeighbourhoods" text="%home.dashboard.tab.neighbourhoods">
+                <content>
+                    <fx:include fx:id="dashboardNeighbourhood" source="DashboardNeighbourhoodView.fxml"/>
+                </content>
+            </Tab>
+            <Tab fx:id="tabEvents" text="%home.dashboard.tab.events">
+                <content>
+                    <VBox alignment="CENTER" style="-fx-padding: 40;">
+                        <Label text="%home.dashboard.tab.empty" style="-fx-font-size: 14px; -fx-opacity: 0.6;"/>
+                    </VBox>
+                </content>
+            </Tab>
+            <Tab fx:id="tabServices" text="%home.dashboard.tab.services">
+                <content>
+                    <VBox alignment="CENTER" style="-fx-padding: 40;">
+                        <Label text="%home.dashboard.tab.empty" style="-fx-font-size: 14px; -fx-opacity: 0.6;"/>
+                    </VBox>
+                </content>
+            </Tab>
+        </tabs>
+    </TabPane>
 </VBox>
