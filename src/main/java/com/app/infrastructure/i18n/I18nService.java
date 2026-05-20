@@ -38,11 +38,11 @@ public class I18nService {
         java.util.ResourceBundle bundle;
         com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Loading bundle for locale: " + locale);
         try {
-            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale, new UTF8Control());
+            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale, I18nService.class.getClassLoader(), new UTF8Control());
             com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Loaded bundle: " + bundle.getBaseBundleName() + " (Locale: " + bundle.getLocale() + ")");
         } catch (Exception e) {
             com.app.infrastructure.util.DailyLogger.logError("I18n", "Error loading resource bundle", e);
-            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale);
+            bundle = java.util.ResourceBundle.getBundle("com.app.i18n.messages", locale, I18nService.class.getClassLoader());
         }
         resources.set(bundle);
         com.app.infrastructure.util.DailyLogger.logDebug("I18n", "Resources property updated.");
@@ -70,7 +70,7 @@ public class I18nService {
             try {
                 pattern = resources.get().getString(key);
             } catch (java.util.MissingResourceException missing) {
-                pattern = java.util.ResourceBundle.getBundle("com.app.i18n.messages", java.util.Locale.FRENCH, new UTF8Control()).getString(key);
+                pattern = java.util.ResourceBundle.getBundle("com.app.i18n.messages", java.util.Locale.FRENCH, I18nService.class.getClassLoader(), new UTF8Control()).getString(key);
             }
             return java.text.MessageFormat.format(pattern, args);
         } catch (Exception e) {
