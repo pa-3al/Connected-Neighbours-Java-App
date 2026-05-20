@@ -64,6 +64,7 @@ public class SettingsController {
     @FXML private TextField dbUserField;
     @FXML private PasswordField dbPasswordField;
     @FXML private Button saveDbButton;
+    @FXML private Button testDbButton;
 
     private com.app.domain.model.UpdateInfo pendingUpdate;
     private Path downloadedUpdate;
@@ -118,7 +119,7 @@ public class SettingsController {
         installButton.textProperty().bind(i18n.createStringBinding("settings.updates.install.button"));
 
         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.uptodate"));
-
+        if (testDbButton != null) testDbButton.textProperty().bind(i18n.createStringBinding("settings.db.test"));
         if (uninstallTitleLabel != null) {
             uninstallTitleLabel.textProperty().bind(i18n.createStringBinding("settings.uninstall.title"));
         }
@@ -226,11 +227,7 @@ public class SettingsController {
 
     @FXML
     private void handleSaveDbConfig() {
-        String hostDb = dbUrlField.getText() != null ? dbUrlField.getText() : "";
-        String user = dbUserField.getText() != null ? dbUserField.getText() : "";
-        String pass = dbPasswordField.getText() != null ? dbPasswordField.getText() : "";
-
-        String formattedUrl = String.format("postgresql://%s:%s@%s", user, pass, hostDb);
+        String formattedUrl = getFormattedDatabaseString();
 
         configProvider.saveSyncDatabaseConfig(formattedUrl);
         log(i18n.get("settings.db.save.success"));
@@ -446,5 +443,42 @@ public class SettingsController {
             cause = cause.getCause();
         }
         return cause;
+    }
+
+    private String getFormattedDatabaseString(){
+        String hostDb = dbUrlField.getText() != null ? dbUrlField.getText() : "";
+        String user = dbUserField.getText() != null ? dbUserField.getText() : "";
+        String pass = dbPasswordField.getText() != null ? dbPasswordField.getText() : "";
+
+        return String.format("postgresql://%s:%s@%s", user, pass, hostDb);
+    }
+
+    @FXML
+    private void handleTestDbConfig() {
+        String hostDb = dbUrlField.getText() != null ? dbUrlField.getText() : "";
+        String user = dbUserField.getText() != null ? dbUserField.getText() : "";
+        String pass = dbPasswordField.getText() != null ? dbPasswordField.getText() : "";
+
+        String jdbcUrl = "jdbc:postgresql://" + hostDb;
+
+        log(i18n.get("settings.db.test.checking"));
+
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(jdbcUrl, user, pass)) {
+            if (conn != null && !conn.isClosed()) {
+                log(i18n.get("settings.db.test.success"));
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle(i18n.get("dialog.db.test.info.title"));
+                alert.setHeaderText(null);
+                alert.setContentText(i18n.get("settings.db.test.success"));
+                alert.showAndWait();
+            }
+        } catch (java.sql.SQLException e) {
+            log(i18n.get("status.error", i18n.get("settings.db.test.fail", e.getMessage())));
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle(i18n.get("status.error"));
+            alert.setHeaderText(i18n.get("settings.db.test.error.header"));
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
+        }
     }
 }
