@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="rootNode"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.app.infrastructure.ui.DashboardEventController"
+      spacing="15"
+      style="-fx-padding: 20;"
+      alignment="CENTER"
+      maxWidth="Infinity"
+      maxHeight="Infinity">
+
+    <GridPane hgap="20"
+              vgap="20"
+              VBox.vgrow="ALWAYS"
+              maxWidth="Infinity"
+              maxHeight="Infinity">
+
+        <columnConstraints>
+            <ColumnConstraints percentWidth="33.33" hgrow="ALWAYS" fillWidth="true"/>
+            <ColumnConstraints percentWidth="33.33" hgrow="ALWAYS" fillWidth="true"/>
+            <ColumnConstraints percentWidth="33.33" hgrow="ALWAYS" fillWidth="true"/>
+        </columnConstraints>
+
+        <rowConstraints>
+            <RowConstraints percentHeight="50" vgrow="ALWAYS" fillHeight="true"/>
+            <RowConstraints percentHeight="50" vgrow="ALWAYS" fillHeight="true"/>
+        </rowConstraints>
+
+        <StackPane GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"
+                   maxWidth="Infinity"
+                   maxHeight="Infinity">
+
+            <PieChart fx:id="priceTypeChart"
+                      title="%dashboard.event.chart.price.type.title"
+                      animated="false"
+                      maxWidth="Infinity"
+                      maxHeight="Infinity"/>
+
+            <Label fx:id="noDataLabelPriceType"
+                   text="%dashboard.event.nodata"
+                   style="-fx-font-size: 16px;"
+                   visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="1"
+                   GridPane.rowIndex="0"
+                   maxWidth="Infinity"
+                   maxHeight="Infinity">
+
+            <BarChart fx:id="priceDistributionChart"
+                      title="%dashboard.event.chart.price.distribution.title"
+                      legendVisible="false"
+                      animated="false"
+                      maxWidth="Infinity"
+                      maxHeight="Infinity">
+
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisPriceDist"
+                                  label="%dashboard.event.chart.price.distribution.xaxis"/>
+                </xAxis>
+
+                <yAxis>
+                    <NumberAxis fx:id="yAxisPriceDist"
+                                label="%dashboard.event.chart.price.distribution.yaxis"/>
+                </yAxis>
+            </BarChart>
+
+            <Label fx:id="noDataLabelPriceDist"
+                   text="%dashboard.event.nodata"
+                   style="-fx-font-size: 16px;"
+                   visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="2"
+                   GridPane.rowIndex="0"
+                   maxWidth="Infinity"
+                   maxHeight="Infinity">
+
+            <LineChart fx:id="avgPriceChart"
+                       title="%dashboard.event.chart.price.avg.title"
+                       legendVisible="false"
+                       animated="false"
+                       maxWidth="Infinity"
+                       maxHeight="Infinity">
+
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisAvgPrice"
+                                  label="%dashboard.event.chart.price.avg.xaxis"/>
+                </xAxis>
+
+                <yAxis>
+                    <NumberAxis fx:id="yAxisAvgPrice"
+                                label="%dashboard.event.chart.price.avg.yaxis"/>
+                </yAxis>
+            </LineChart>
+
+            <Label fx:id="noDataLabelAvgPrice"
+                   text="%dashboard.event.nodata"
+                   style="-fx-font-size: 16px;"
+                   visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"
+                   GridPane.columnSpan="2"
+                   GridPane.hgrow="ALWAYS"
+                   GridPane.vgrow="ALWAYS"
+                   maxWidth="Infinity"
+                   maxHeight="Infinity">
+
+            <BarChart fx:id="topParticipationsChart"
+                      title="%dashboard.event.chart.top.title"
+                      legendVisible="false"
+                      animated="false"
+                      maxWidth="Infinity"
+                      maxHeight="Infinity">
+
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisTop"
+                                  label="%dashboard.event.chart.top.xaxis"/>
+                </xAxis>
+
+                <yAxis>
+                    <NumberAxis fx:id="yAxisTop"
+                                label="%dashboard.event.chart.top.yaxis"/>
+                </yAxis>
+            </BarChart>
+
+            <Label fx:id="noDataLabelTop"
+                   text="%dashboard.event.nodata"
+                   style="-fx-font-size: 16px;"
+                   visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="2"
+                   GridPane.rowIndex="1"
+                   GridPane.hgrow="ALWAYS"
+                   GridPane.vgrow="ALWAYS"
+                   maxWidth="Infinity"
+                   maxHeight="Infinity">
+
+            <LineChart fx:id="eventsPerMonthChart"
+                       title="%dashboard.event.chart.month.title"
+                       legendVisible="false"
+                       animated="false"
+                       maxWidth="Infinity"
+                       maxHeight="Infinity">
+                <xAxis>
+                    <CategoryAxis label="%dashboard.event.chart.month.xaxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="%dashboard.event.chart.month.yaxis"/>
+                </yAxis>
+            </LineChart>
+
+            <Label fx:id="noDataLabelMonth"
+                   text="%dashboard.event.nodata"
+                   style="-fx-font-size: 16px;"
+                   visible="false"/>
+        </StackPane>
+
+    </GridPane>
+</VBox>
