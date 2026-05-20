@@ -24,23 +24,23 @@
                         </HBox>
 
                         <VBox spacing="2">
-                            <Label text="GÉNÉRAL" styleClass="sidebar-category-title"/>
+                            <Label text="%nav.section.general" styleClass="sidebar-category-title"/>
                             <Button text="%nav.home" fx:id="btnHome" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showHome"/>
-                            <Button text="Incidents" fx:id="btnIncidents" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showIncidents"/>
+                            <Button text="%nav.incidents" fx:id="btnIncidents" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showIncidents"/>
                             <Button text="%nav.query" fx:id="btnQuery" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showQuery"/>
                             <Button text="%nav.plugins" fx:id="btnPlugins" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showPlugins"/>
                             <Button text="%nav.themes" fx:id="btnTheme" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showThemes"/>
                         </VBox>
 
                         <VBox spacing="2">
-                            <Label text="PLUGINS" styleClass="sidebar-category-title"/>
+                            <Label text="%nav.section.plugins" styleClass="sidebar-category-title"/>
                             <VBox fx:id="pluginsNavContainer" spacing="2"/>
                         </VBox>
 
                         <Region VBox.vgrow="ALWAYS" />
 
                         <VBox spacing="2">
-                            <Label text="PARAMÈTRES" styleClass="sidebar-category-title"/>
+                            <Label text="%nav.section.settings" styleClass="sidebar-category-title"/>
                             <Button text="%settings.title" fx:id="btnSettings" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showSettings"/>
                         </VBox>
                     </VBox>
@@ -53,7 +53,7 @@
                         </HBox>
                     </top>
                     <center>
-                        <Label text="Bienvenue dans l'application" styleClass="placeholder-text"/>
+                        <Label text="%main.placeholder.welcome" styleClass="placeholder-text"/>
                     </center>
                 </BorderPane>
             </items>
@@ -61,7 +61,7 @@
     </center>
     <bottom>
         <HBox style="-fx-padding: 5; -fx-background-color: #202020;">
-            <Label fx:id="statusLabel" text="Ready" style="-fx-text-fill: #c9d1d9;" />
+            <Label fx:id="statusLabel" text="%main.status.ready" style="-fx-text-fill: #c9d1d9;" />
         </HBox>
     </bottom>
 </BorderPane>

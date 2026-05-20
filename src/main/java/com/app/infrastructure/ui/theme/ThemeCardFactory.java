@@ -55,7 +55,7 @@ public class ThemeCardFactory {
         buttons.setAlignment(Pos.CENTER_LEFT);
 
         Button applyBtn = new Button();
-        applyBtn.setText(isCurrent ? i18n.get("theme.preview.badge.active") : "Appliquer");
+        applyBtn.setText(isCurrent ? i18n.get("theme.preview.badge.active") : i18n.get("theme.apply"));
         applyBtn.getStyleClass().add(isCurrent ? "success-button" : "primary-button");
         applyBtn.setDisable(isCurrent);
         applyBtn.setOnAction(e -> onApply.accept(theme.id()));
