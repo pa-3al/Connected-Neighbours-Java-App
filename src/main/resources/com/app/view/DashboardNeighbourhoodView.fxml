@@ -14,20 +14,21 @@
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.app.infrastructure.ui.DashboardNeighbourhoodController"
       spacing="15" style="-fx-padding: 20;"
-      alignment="CENTER">
+      alignment="CENTER"
+      maxWidth="Infinity" maxHeight="Infinity">
 
-    <GridPane hgap="20" vgap="20" VBox.vgrow="ALWAYS">
+    <GridPane hgap="20" vgap="20" VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
         <columnConstraints>
-            <ColumnConstraints percentWidth="50"/>
-            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" fillWidth="true"/>
+            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" fillWidth="true"/>
         </columnConstraints>
         <rowConstraints>
-            <RowConstraints percentHeight="50"/>
-            <RowConstraints percentHeight="50"/>
+            <RowConstraints percentHeight="50" vgrow="ALWAYS" fillHeight="true"/>
+            <RowConstraints percentHeight="50" vgrow="ALWAYS" fillHeight="true"/>
         </rowConstraints>
 
-        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="0">
-            <BarChart fx:id="populationChart" title="%dashboard.neighbourhood.chart.population.title" legendVisible="false" animated="false">
+        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <BarChart fx:id="populationChart" title="%dashboard.neighbourhood.chart.population.title" legendVisible="false" animated="false" maxWidth="Infinity" maxHeight="Infinity">
                 <xAxis>
                     <CategoryAxis fx:id="xAxisPopulation" label="%dashboard.neighbourhood.chart.xaxis"/>
                 </xAxis>
@@ -38,13 +39,13 @@
             <Label fx:id="noDataLabelPop" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
         </StackPane>
 
-        <StackPane GridPane.columnIndex="1" GridPane.rowIndex="0">
-            <PieChart fx:id="countryPieChart" title="%dashboard.neighbourhood.chart.country.title" animated="false"/>
+        <StackPane GridPane.columnIndex="1" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <PieChart fx:id="countryPieChart" title="%dashboard.neighbourhood.chart.country.title" animated="false" maxWidth="Infinity" maxHeight="Infinity"/>
             <Label fx:id="noDataLabelCountry" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
         </StackPane>
 
-        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">
-            <BarChart fx:id="usersPerNeighbourhoodChart" title="%dashboard.neighbourhood.chart.users.title" legendVisible="false" animated="false">
+        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <BarChart fx:id="usersPerNeighbourhoodChart" title="%dashboard.neighbourhood.chart.users.title" legendVisible="false" animated="false" maxWidth="Infinity" maxHeight="Infinity">
                 <xAxis>
                     <CategoryAxis fx:id="xAxisUsers" label="%dashboard.neighbourhood.chart.xaxis"/>
                 </xAxis>

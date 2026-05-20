@@ -19,6 +19,14 @@ public class HomeController {
     private Tab tabServices;
 
     @FXML
+    private DashboardNeighbourhoodController dashboardNeighbourhoodController;
+
+    @FXML
     public void initialize() {
+        tabNeighbourhoods.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
+            if (isSelected && dashboardNeighbourhoodController != null) {
+                dashboardNeighbourhoodController.refresh();
+            }
+        });
     }
 }

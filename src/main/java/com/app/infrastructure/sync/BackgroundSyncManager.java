@@ -3,8 +3,11 @@ package com.app.infrastructure.sync;
 import com.app.domain.service.*;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.config.ConfigProvider;
+import com.app.infrastructure.ui.AppState;
 import com.app.infrastructure.util.ConnectivityUtil;
 import com.app.infrastructure.util.DailyLogger;
+
+import javafx.application.Platform;
 
 public class BackgroundSyncManager {
 
@@ -54,6 +57,7 @@ public class BackgroundSyncManager {
             while (true) {
                 try {
                     if (ConnectivityUtil.checkConnectivity()) {
+                        Platform.runLater(() -> AppState.getInstance().setSyncing(true));
                         try {
                             userService.syncUsers();
                             neighbourhoodSyncManager.syncWithBackend(conflict -> conflict.server());
@@ -68,6 +72,8 @@ public class BackgroundSyncManager {
                             incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
                         } catch (Exception dbError) {
                             DailyLogger.logError("Sync", "Erreur BDD au démarrage, synchro ignorée: " + dbError.getMessage(), dbError);
+                        } finally {
+                            Platform.runLater(() -> AppState.getInstance().setSyncing(false));
                         }
                         break;
                     }

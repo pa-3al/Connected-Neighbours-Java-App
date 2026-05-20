@@ -45,6 +45,15 @@ public class DashboardNeighbourhoodController {
 
     @FXML
     public void initialize() {
+        refresh();
+        AppState.getInstance().syncingProperty().addListener((observable, wasSyncing, isSyncing) -> {
+            if (wasSyncing && !isSyncing) {
+                refresh();
+            }
+        });
+    }
+
+    public void refresh() {
         Platform.runLater(this::loadChartData);
     }
 
@@ -69,30 +78,23 @@ public class DashboardNeighbourhoodController {
         if (populationChart == null) return;
         try {
             List<Neighbourhood> neighbourhoods = repository.findAll();
-            long maxPop = neighbourhoods.stream()
-                    .filter(n -> n.estimatedPopulation() != null)
-                    .mapToLong(Neighbourhood::estimatedPopulation)
-                    .max()
-                    .orElse(0);
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName("Population");
 
-            if (maxPop > 0) {
-                yAxisPopulation.setAutoRanging(false);
-                yAxisPopulation.setLowerBound(0);
-                double upperBound = Math.ceil(maxPop * 1.2 / 50000) * 50000;
-                if (upperBound <= 0) upperBound = 1000;
-                yAxisPopulation.setUpperBound(upperBound);
-                double tickUnit = upperBound / 5;
-                yAxisPopulation.setTickUnit(tickUnit > 0 ? tickUnit : 100);
+            long maxPop = 0;
 
-                XYChart.Series<String, Number> series = new XYChart.Series<>();
-                series.setName("Population");
-
-                for (Neighbourhood n : neighbourhoods) {
-                    if (n.name() != null && n.estimatedPopulation() != null) {
-                        series.getData().add(new XYChart.Data<>(n.name(), n.estimatedPopulation()));
+            for (Neighbourhood n : neighbourhoods) {
+                if (n.name() != null && n.estimatedPopulation() != null) {
+                    int population = Math.max(0, n.estimatedPopulation());
+                    series.getData().add(new XYChart.Data<>(n.name(), population));
+                    if (population > maxPop) {
+                        maxPop = population;
                     }
                 }
+            }
 
+            if (!series.getData().isEmpty()) {
+                configureNumberAxis(yAxisPopulation, maxPop);
                 populationChart.getData().clear();
                 populationChart.getData().add(series);
                 populationChart.setVisible(true);
@@ -112,8 +114,14 @@ public class DashboardNeighbourhoodController {
             if (!countryData.isEmpty()) {
                 countryPieChart.getData().clear();
                 for (Map.Entry<String, Integer> entry : countryData.entrySet()) {
-                    String country = entry.getKey() == null || entry.getKey().isEmpty() ? "Inconnu" : entry.getKey();
-                    countryPieChart.getData().add(new PieChart.Data(country, entry.getValue()));
+                    if (entry.getValue() != null && entry.getValue() > 0) {
+                        String country = entry.getKey() == null || entry.getKey().isBlank() ? "Inconnu" : entry.getKey();
+                        countryPieChart.getData().add(new PieChart.Data(country, entry.getValue()));
+                    }
+                }
+                if (countryPieChart.getData().isEmpty()) {
+                    displayNoDataCountry();
+                    return;
                 }
                 countryPieChart.setVisible(true);
                 noDataLabelCountry.setVisible(false);
@@ -136,18 +144,22 @@ public class DashboardNeighbourhoodController {
                 int maxUsers = 0;
 
                 for (Map.Entry<String, Integer> entry : usersData.entrySet()) {
-                    series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
-                    if (entry.getValue() > maxUsers) {
-                        maxUsers = entry.getValue();
+                    if (entry.getValue() != null) {
+                        String neighbourhood = entry.getKey() == null || entry.getKey().isBlank() ? "Inconnu" : entry.getKey();
+                        int userCount = Math.max(0, entry.getValue());
+                        series.getData().add(new XYChart.Data<>(neighbourhood, userCount));
+                        if (userCount > maxUsers) {
+                            maxUsers = userCount;
+                        }
                     }
                 }
 
-                yAxisUsers.setAutoRanging(false);
-                yAxisUsers.setLowerBound(0);
-                double upperBound = Math.ceil(maxUsers * 1.2);
-                if (upperBound <= 0) upperBound = 10;
-                yAxisUsers.setUpperBound(upperBound);
-                yAxisUsers.setTickUnit(Math.max(1, Math.ceil(upperBound / 5)));
+                if (series.getData().isEmpty()) {
+                    displayNoDataUsers();
+                    return;
+                }
+
+                configureNumberAxis(yAxisUsers, maxUsers);
 
                 usersPerNeighbourhoodChart.getData().clear();
                 usersPerNeighbourhoodChart.getData().add(series);
@@ -174,5 +186,26 @@ public class DashboardNeighbourhoodController {
     private void displayNoDataUsers() {
         if (usersPerNeighbourhoodChart != null) usersPerNeighbourhoodChart.setVisible(false);
         if (noDataLabelUsers != null) noDataLabelUsers.setVisible(true);
+    }
+
+    private void configureNumberAxis(NumberAxis axis, double maxValue) {
+        if (axis == null) return;
+        double upperBound = calculateUpperBound(maxValue);
+        axis.setAutoRanging(false);
+        axis.setLowerBound(0);
+        axis.setUpperBound(upperBound);
+        axis.setTickUnit(Math.max(1, upperBound / 5));
+        axis.setMinorTickVisible(false);
+    }
+
+    private double calculateUpperBound(double maxValue) {
+        if (maxValue <= 0) return 1;
+        double padded = maxValue * 1.2;
+        double magnitude = Math.pow(10, Math.floor(Math.log10(padded)));
+        double normalized = padded / magnitude;
+
+        if (normalized <= 2) return 2 * magnitude;
+        if (normalized <= 5) return 5 * magnitude;
+        return 10 * magnitude;
     }
 }

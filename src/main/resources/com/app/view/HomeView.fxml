@@ -18,7 +18,7 @@
         <tabs>
             <Tab fx:id="tabNeighbourhoods" text="%home.dashboard.tab.neighbourhoods">
                 <content>
-                    <fx:include source="DashboardNeighbourhoodView.fxml"/>
+                    <fx:include fx:id="dashboardNeighbourhood" source="DashboardNeighbourhoodView.fxml"/>
                 </content>
             </Tab>
             <Tab fx:id="tabEvents" text="%home.dashboard.tab.events">

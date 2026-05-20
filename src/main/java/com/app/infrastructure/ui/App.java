@@ -115,17 +115,22 @@ public class App extends Application {
 
             FXMLLoader homeLoader = new FXMLLoader(App.class.getResource("/com/app/view/HomeView.fxml"));
             homeLoader.setResources(bundle);
-            homeLoader.setControllerFactory(param -> new HomeController());
+            homeLoader.setControllerFactory(param -> {
+                if (param == HomeController.class) {
+                    return new HomeController();
+                }
+                try {
+                    return param.getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException("Failed to create controller " + param.getName(), e);
+                }
+            });
             Parent homeView = homeLoader.load();
 
             FXMLLoader incidentLoader = new FXMLLoader(App.class.getResource("/com/app/view/IncidentView.fxml"));
             incidentLoader.setResources(bundle);
             incidentLoader.setControllerFactory(param -> new IncidentController(serviceContext.getIncidentService(), serviceContext.getUserService()));
             Parent incidentView = incidentLoader.load();
-
-            FXMLLoader dashboardNeighbourhoodLoader = new FXMLLoader(App.class.getResource("/com/app/view/DashboardNeighbourhoodView.fxml"));
-            dashboardNeighbourhoodLoader.setResources(bundle);
-            Parent dashboardNeighbourhoodView = dashboardNeighbourhoodLoader.load();
 
             mainController.setViews(homeView, settingsView, themeView, pluginView, queryView, incidentView);
             scene = new Scene(root, 1000, 700);
