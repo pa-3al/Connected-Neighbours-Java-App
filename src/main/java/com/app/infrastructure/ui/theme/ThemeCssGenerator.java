@@ -13,6 +13,16 @@ public class ThemeCssGenerator {
                 -fx-text-fill: %s;
                 -fx-accent: %s;
                 -fx-focus-color: %s;
+                
+                /* Couleurs dynamiques des graphiques (BarChart, PieChart, Légendes) */
+                -fx-chart-color-1: %s;
+                -fx-chart-color-2: %s;
+                -fx-chart-color-3: %s;
+                -fx-chart-color-4: %s;
+                -fx-chart-color-5: %s;
+                -fx-chart-color-6: %s;
+                -fx-chart-color-7: %s;
+                -fx-chart-color-8: %s;
             }
             .label { -fx-text-fill: %s; -fx-font-size: 14px; }
             .section-title { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: %s; }
@@ -49,7 +59,6 @@ public class ThemeCssGenerator {
             }
             .theme-card, .plugin-card {
                 -fx-background-color: %s;
-                -fx-background-radius: 10;
                 -fx-border-color: %s;
                 -fx-border-radius: 10;
                 -fx-border-width: 1;
@@ -102,9 +111,26 @@ public class ThemeCssGenerator {
             .count-label { -fx-text-fill: %s; -fx-font-size: 13px; }
             .empty-message { -fx-text-fill: %s; -fx-font-size: 14px; -fx-text-alignment: center; }
             .themes-container, .plugins-container { -fx-padding: 10; }
+            
+            .chart { -fx-padding: 10; }
+            .chart-content { -fx-padding: 10; }
+            .chart-title { -fx-text-fill: %s; }
+            .axis { -fx-tick-label-fill: %s; -fx-tick-mark-stroke: %s; }
+            .axis-label { -fx-text-fill: %s; }
+            .chart-legend { -fx-background-color: transparent; -fx-text-fill: %s; }
+            .chart-legend-item { -fx-text-fill: %s; }
+            .chart-plot-background { -fx-background-color: transparent; }
+            .chart-vertical-grid-lines { -fx-stroke: %s; }
+            .chart-horizontal-grid-lines { -fx-stroke: %s; }
+            .chart-pie-label { -fx-fill: %s; }
             """,
                 toHex(c.background()), toHex(c.cardBackground()), toHex(c.background()),
                 toHex(c.primaryText()), toHex(c.buttonPrimary()), toHex(c.accent()),
+
+                /* Mapping des 8 couleurs de graphiques */
+                toHex(c.buttonPrimary()), toHex(c.accent()), toHex(c.buttonSuccess()), toHex(c.buttonWarning()),
+                toHex(c.buttonDanger()), toHex(c.secondaryText()), toHex(c.borderColor()), toHex(c.primaryText()),
+
                 toHex(c.primaryText()), toHex(c.primaryText()), toHex(c.primaryText()), toHex(c.secondaryText()),
                 toHex(c.buttonPrimary()), toHex(c.buttonPrimary().brighter()),
                 toHex(c.accent()), toHex(c.accentHover()),
@@ -125,7 +151,11 @@ public class ThemeCssGenerator {
                 toHex(c.scrollbarColor()), toHex(c.scrollbarColor().brighter()),
                 toHex(c.borderColor()), toHex(c.borderColor()),
                 toHex(c.cardBackground()), toHex(c.borderColor()), toHex(c.primaryText()), toHex(c.buttonPrimary()), toHex(c.cardBackground().brighter()),
-                toHex(c.secondaryText()), toHex(c.buttonSuccess()), toHex(c.secondaryText()), toHex(c.secondaryText())
+                toHex(c.secondaryText()), toHex(c.buttonSuccess()), toHex(c.secondaryText()), toHex(c.secondaryText()),
+
+                toHex(c.primaryText()), toHex(c.secondaryText()), toHex(c.borderColor()), toHex(c.primaryText()),
+                toHex(c.primaryText()), toHex(c.primaryText()), toHex(c.borderColor()), toHex(c.borderColor()),
+                toHex(c.primaryText())
         );
     }
 
