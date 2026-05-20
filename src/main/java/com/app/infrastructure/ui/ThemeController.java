@@ -111,10 +111,10 @@ public class ThemeController {
             themeUseCase.switchTheme(themeId);
             updateCurrentThemeLabel();
             refreshThemesList();
-            setStatus("✅ " + i18n.get("theme.status.applied"));
+            setStatus(i18n.get("status.success", i18n.get("theme.status.applied")));
         } catch (Exception e) {
             com.app.infrastructure.util.DailyLogger.logError("Themes", "Failed to apply theme " + themeId, e);
-            setStatus("❌ Erreur : " + e.getMessage());
+            setStatus(i18n.get("status.error", i18n.get("error.detail", e.getMessage())));
         }
     }
 
@@ -133,10 +133,10 @@ public class ThemeController {
                 );
                 themeUseCase.deleteTheme(theme.id());
                 refreshThemesList();
-                setStatus("✅ Thème supprimé");
+                setStatus(i18n.get("status.success", i18n.get("theme.status.deleted")));
             } catch (Exception e) {
                 com.app.infrastructure.util.DailyLogger.logError("Themes", "Failed to delete theme " + theme.id(), e);
-                setStatus("❌ " + e.getMessage());
+                setStatus(i18n.get("status.error", e.getMessage()));
             }
         }
     }
@@ -146,7 +146,7 @@ public class ThemeController {
         fileChooser.setTitle(i18n.get("theme.export.title"));
         fileChooser.setInitialFileName(theme.id() + ".zip");
         fileChooser.getExtensionFilters().add(
-                new javafx.stage.FileChooser.ExtensionFilter("Fichier ZIP (*.zip)", "*.zip")
+                new javafx.stage.FileChooser.ExtensionFilter(i18n.get("file.filter.zip"), "*.zip")
         );
 
         java.io.File file = fileChooser.showSaveDialog(themesContainer.getScene().getWindow());
@@ -157,10 +157,10 @@ public class ThemeController {
                         "User exporting theme " + theme.id() + " to " + file.getPath()
                 );
                 themeUseCase.exportTheme(theme.id(), file.toPath());
-                setStatus("✅ " + i18n.get("theme.export.success", file.getName()));
+                setStatus(i18n.get("status.success", i18n.get("theme.export.success", file.getName())));
             } catch (Exception e) {
                 com.app.infrastructure.util.DailyLogger.logError("Themes", "Failed to export theme " + theme.id(), e);
-                setStatus("❌ " + i18n.get("theme.export.error", e.getMessage()));
+                setStatus(i18n.get("status.error", i18n.get("theme.export.error", e.getMessage())));
             }
         }
     }
@@ -168,7 +168,7 @@ public class ThemeController {
     private void handleEditTheme(Theme theme) {
         Map<String, String> props = themeUseCase.getThemeProperties(theme.id());
         if (props == null || props.isEmpty()) {
-            setStatus("❌ " + i18n.get("theme.edit.error.nodata"));
+            setStatus(i18n.get("status.error", i18n.get("theme.edit.error.nodata")));
             return;
         }
 
@@ -181,7 +181,7 @@ public class ThemeController {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle(i18n.get("theme.import.title"));
         fileChooser.getExtensionFilters().add(
-                new javafx.stage.FileChooser.ExtensionFilter("Fichier ZIP (*.zip)", "*.zip")
+                new javafx.stage.FileChooser.ExtensionFilter(i18n.get("file.filter.zip"), "*.zip")
         );
 
         java.io.File file = fileChooser.showOpenDialog(themesContainer.getScene().getWindow());
@@ -190,10 +190,10 @@ public class ThemeController {
                 com.app.infrastructure.util.DailyLogger.logInfo("Themes", "User importing theme from " + file.getPath());
                 themeUseCase.importTheme(file.toPath());
                 refreshThemesList();
-                setStatus("✅ " + i18n.get("theme.import.success", file.getName()));
+                setStatus(i18n.get("status.success", i18n.get("theme.import.success", file.getName())));
             } catch (Exception e) {
                 com.app.infrastructure.util.DailyLogger.logError("Themes", "Failed to import theme", e);
-                setStatus("❌ " + i18n.get("theme.import.error", e.getMessage()));
+                setStatus(i18n.get("status.error", i18n.get("theme.import.error", e.getMessage())));
             }
         }
     }
@@ -202,7 +202,7 @@ public class ThemeController {
     private void handleDownloadTheme() {
         String url = themeUrlField.getText();
         if (url == null || url.isBlank()) {
-            setStatus("❌ " + i18n.get("theme.download.error.url"));
+            setStatus(i18n.get("status.error", i18n.get("theme.download.error.url")));
             return;
         }
 
@@ -216,13 +216,13 @@ public class ThemeController {
                     downloadButton.setDisable(false);
                     themeUrlField.clear();
                     refreshThemesList();
-                    setStatus("✅ " + i18n.get("theme.download.success", theme.name()));
+                    setStatus(i18n.get("status.success", i18n.get("theme.download.success", theme.name())));
                 }))
                 .exceptionally(ex -> {
                     Platform.runLater(() -> {
                         com.app.infrastructure.util.DailyLogger.logError("Themes", "Theme download failed", ex);
                         downloadButton.setDisable(false);
-                        setStatus("❌ " + i18n.get("theme.download.error", getRootCause(ex).getMessage()));
+                        setStatus(i18n.get("status.error", i18n.get("theme.download.error", getRootCause(ex).getMessage())));
                     });
                     return null;
                 });
@@ -266,9 +266,9 @@ public class ThemeController {
             }
 
             String action = isEdit ? i18n.get("theme.action.modified") : i18n.get("theme.action.created");
-            setStatus("✅ " + i18n.get("theme.create.success", draft.get().name(), action));
+            setStatus(i18n.get("status.success", i18n.get("theme.create.success", draft.get().name(), action)));
         } catch (IOException e) {
-            setStatus("❌ Erreur : " + e.getMessage());
+            setStatus(i18n.get("status.error", i18n.get("error.detail", e.getMessage())));
             com.app.infrastructure.util.DailyLogger.logError("Themes", "Failed to create theme", e);
         }
     }
@@ -293,7 +293,7 @@ public class ThemeController {
                       "id": "%s",
                       "name": "%s",
                       "author": "%s",
-                      "description": "Thème personnalisé créé avec l'éditeur avancé",
+                      "description": "%s",
                       "cssFile": "theme.css",
                       "colors": {
                         %s
@@ -303,6 +303,7 @@ public class ThemeController {
                 themeId,
                 name,
                 author,
+                i18n.get("theme.custom.description"),
                 colorsJson
         );
 
@@ -313,7 +314,7 @@ public class ThemeController {
 
     private void updateCurrentThemeLabel() {
         Theme current = themeUseCase.getCurrentTheme();
-        currentThemeLabel.setText("Thème actuel : " + (current != null ? current.name() : "Aucun"));
+        currentThemeLabel.setText(i18n.get("theme.current", current != null ? current.name() : i18n.get("theme.none")));
     }
 
     private void setStatus(String message) {

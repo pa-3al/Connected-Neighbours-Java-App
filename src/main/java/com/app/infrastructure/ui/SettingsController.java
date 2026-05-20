@@ -129,9 +129,11 @@ public class SettingsController {
             uninstallButton.textProperty().bind(i18n.createStringBinding("settings.uninstall.button"));
         }
 
+        if (dbConfigTitleLabel != null) dbConfigTitleLabel.textProperty().bind(i18n.createStringBinding("settings.db.title"));
         if (dbUrlLabel != null) dbUrlLabel.textProperty().bind(i18n.createStringBinding("settings.db.url"));
         if (dbUserLabel != null) dbUserLabel.textProperty().bind(i18n.createStringBinding("settings.db.user"));
         if (dbPasswordLabel != null) dbPasswordLabel.textProperty().bind(i18n.createStringBinding("settings.db.password"));
+        if (saveDbButton != null) saveDbButton.textProperty().bind(i18n.createStringBinding("settings.db.save"));
     }
 
     private void setupLanguageCombo() {
@@ -141,12 +143,12 @@ public class SettingsController {
             @Override
             public String toString(java.util.Locale object) {
                 if (object == null) return "";
-                if (object.equals(java.util.Locale.FRENCH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode("Français :fr:");
-                if (object.equals(java.util.Locale.ENGLISH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode("English :us:");
+                if (object.equals(java.util.Locale.FRENCH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode(i18n.get("language.french"));
+                if (object.equals(java.util.Locale.ENGLISH)) return com.vdurmont.emoji.EmojiParser.parseToUnicode(i18n.get("language.english"));
 
                 String display = object.getDisplayName();
                 if (display == null || display.isBlank() || display.equalsIgnoreCase(object.getLanguage())) {
-                    return object.getLanguage() + " (User)";
+                    return object.getLanguage() + " (" + i18n.get("language.user") + ")";
                 }
                 return display + " [" + object.getLanguage() + "]";
             }
@@ -177,7 +179,7 @@ public class SettingsController {
         );
         onlineToggle.selectedProperty().addListener((obs, oldVal, newVal) -> {
             appState.setOnline(newVal);
-            log(newVal ? "Mode en ligne activé" : "Mode hors ligne activé");
+            log(i18n.get(newVal ? "settings.online.log.active" : "settings.online.log.inactive"));
         });
     }
 
@@ -231,7 +233,7 @@ public class SettingsController {
         String formattedUrl = String.format("postgresql://%s:%s@%s", user, pass, hostDb);
 
         configProvider.saveSyncDatabaseConfig(formattedUrl);
-        log("Configuration PostgreSQL (Sync) enregistrée avec succès.");
+        log(i18n.get("settings.db.save.success"));
     }
 
     @FXML
@@ -251,10 +253,10 @@ public class SettingsController {
                         statusLabel.textProperty().unbind();
                         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.found", info.version()));
                         log(i18n.get("settings.updates.status.found", info.version()));
-                        log("Description : " + info.description());
+                        log(i18n.get("settings.updates.description", info.description()));
                         com.app.infrastructure.util.DailyLogger.logInfo("Settings", "Update found: " + info.version());
                         if (info.changelog() != null && !info.changelog().isEmpty()) {
-                            log("\n--- Changelog ---\n" + info.changelog());
+                            log(i18n.get("settings.updates.changelog", info.changelog()));
                         }
                         downloadButton.setVisible(true);
                         downloadButton.setDisable(false);
@@ -272,7 +274,7 @@ public class SettingsController {
                         checkButton.setDisable(false);
                         statusLabel.textProperty().unbind();
                         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.error"));
-                        log("❌ " + i18n.get("settings.updates.status.error") + " : " + getRootCause(ex).getMessage());
+                        log(i18n.get("status.error", i18n.get("settings.updates.error.detail", getRootCause(ex).getMessage())));
                     });
                     return null;
                 });
@@ -300,7 +302,7 @@ public class SettingsController {
                 })
                 .thenAccept(path -> Platform.runLater(() -> {
                     downloadedUpdate = path;
-                    log("✅ " + i18n.get("settings.updates.status.ready"));
+                    log(i18n.get("status.success", i18n.get("settings.updates.status.ready")));
                     statusLabel.textProperty().unbind();
                     statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.ready"));
                     installButton.setVisible(true);
@@ -312,7 +314,7 @@ public class SettingsController {
                         downloadButton.setDisable(false);
                         statusLabel.textProperty().unbind();
                         statusLabel.textProperty().bind(i18n.createStringBinding("settings.updates.status.download.failed"));
-                        log("❌ " + i18n.get("settings.updates.status.download.failed") + " : " + getRootCause(ex).getMessage());
+                        log(i18n.get("status.error", i18n.get("settings.updates.download.error.detail", getRootCause(ex).getMessage())));
                         progressContainer.setVisible(false);
                         progressContainer.setManaged(false);
                     });
@@ -330,7 +332,7 @@ public class SettingsController {
         alert.setContentText(i18n.get("dialog.update.content"));
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                log("Redémarrage...");
+                log(i18n.get("settings.updates.restart"));
                 com.app.infrastructure.util.DailyLogger.logWarn("Settings", "User confirmed update installation. Application restarting.");
                 if (downloadedUpdate != null) {
                     checkUpdateUseCase.applyUpdate(downloadedUpdate);
@@ -377,9 +379,9 @@ public class SettingsController {
                                     report.append(i18n.get("settings.uninstall.error.file", p.toString())).append("\n");
                                 }
                             });
-                    report.append("✅ ").append(dir).append("\n");
+                    report.append(i18n.get("status.success", dir)).append("\n");
                 } catch (IOException e) {
-                    report.append("❌ ").append(dir).append(": ").append(e.getMessage()).append("\n");
+                    report.append(i18n.get("status.error", i18n.get("settings.uninstall.item.error", dir, e.getMessage()))).append("\n");
                 }
             }
         }
@@ -395,10 +397,10 @@ public class SettingsController {
             File jarFile = new File(jarPath);
             if (jarFile.exists() && jarFile.getName().endsWith(".jar")) {
                 triggerSelfDestruct(jarFile);
-                report.append("✅ Self-destruct scheduled.\n");
+                report.append(i18n.get("status.success", i18n.get("settings.uninstall.selfdestruct.scheduled"))).append("\n");
             }
         } catch (Exception e) {
-            report.append("❌ Self-destruct failed: ").append(e.getMessage()).append("\n");
+            report.append(i18n.get("status.error", i18n.get("settings.uninstall.selfdestruct.failed", e.getMessage()))).append("\n");
             com.app.infrastructure.util.DailyLogger.logError("Uninstall", "Failed to schedule self-destruct", e);
         }
 

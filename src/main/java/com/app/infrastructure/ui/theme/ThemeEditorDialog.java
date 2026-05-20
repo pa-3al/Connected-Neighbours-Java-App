@@ -86,12 +86,12 @@ public class ThemeEditorDialog {
         Region accentPreview = createPreviewBox();
         Region accentHoverPreview = createPreviewBox();
 
-        Button btnPrimaryPreview = new Button("Primary");
-        Button btnSuccessPreview = new Button("Success");
-        Button btnWarningPreview = new Button("Warning");
-        Button btnDangerPreview = new Button("Danger");
+        Button btnPrimaryPreview = new Button(i18n.get("theme.editor.preview.primary"));
+        Button btnSuccessPreview = new Button(i18n.get("theme.editor.preview.success"));
+        Button btnWarningPreview = new Button(i18n.get("theme.editor.preview.warning"));
+        Button btnDangerPreview = new Button(i18n.get("theme.editor.preview.danger"));
 
-        TextField inputPreview = new TextField("Input");
+        TextField inputPreview = new TextField(i18n.get("theme.editor.preview.input"));
         inputPreview.setPrefWidth(80);
         Region inputBorderPreview = createPreviewBox();
 
@@ -110,7 +110,7 @@ public class ThemeEditorDialog {
                 initialColors.sidebarColor() != null ? initialColors.sidebarColor() : Color.web("#2b2b2b")
         );
 
-        Button radiusPreview = new Button("Radius");
+        Button radiusPreview = new Button(i18n.get("theme.editor.preview.radius"));
         Region sidebarPreview = new Region();
         sidebarPreview.setPrefHeight(40);
         sidebarPreview.setMinHeight(40);
@@ -130,50 +130,50 @@ public class ThemeEditorDialog {
         baseGrid.add(new Separator(), 0, row++, 3, 1);
 
         baseGrid.add(createSectionLabel(i18n.get("theme.preview.section.colors")), 0, row++, 3, 1);
-        addRowWithPreview(baseGrid, row++, "Arrière-plan", bgColor, bgPreview);
-        addRowWithPreview(baseGrid, row++, "Cartes/Panneaux", cardColor, cardPreview);
-        addRowWithPreview(baseGrid, row++, "Texte principal", textColor, textPreview);
-        addRowWithPreview(baseGrid, row++, "Texte secondaire", mutedTextColor, mutedPreview);
-        Tab baseTab = new Tab("📋 Base", baseGrid);
+        addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.background"), bgColor, bgPreview);
+        addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.cards"), cardColor, cardPreview);
+        addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.primary_text"), textColor, textPreview);
+        addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.secondary_text"), mutedTextColor, mutedPreview);
+        Tab baseTab = new Tab(i18n.get("theme.editor.tab.base"), baseGrid);
 
         GridPane accentGrid = createColorGrid();
         row = 0;
         accentGrid.add(createSectionLabel(i18n.get("theme.preview.section.accent")), 0, row++, 3, 1);
-        addRowWithPreview(accentGrid, row++, "Accent principal", accentColor, accentPreview);
-        addRowWithPreview(accentGrid, row++, "Accent hover", accentHoverColor, accentHoverPreview);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.accent"), accentColor, accentPreview);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.accent_hover"), accentHoverColor, accentHoverPreview);
 
         accentGrid.add(new Separator(), 0, row++, 3, 1);
         accentGrid.add(createSectionLabel(i18n.get("theme.preview.section.buttons")), 0, row++, 3, 1);
-        addRowWithPreview(accentGrid, row++, "Bouton principal", btnPrimaryColor, btnPrimaryPreview);
-        addRowWithPreview(accentGrid, row++, "Bouton succès", btnSuccessColor, btnSuccessPreview);
-        addRowWithPreview(accentGrid, row++, "Bouton warning", btnWarningColor, btnWarningPreview);
-        addRowWithPreview(accentGrid, row++, "Bouton danger", btnDangerColor, btnDangerPreview);
-        Tab accentTab = new Tab("🎯 Accent & Boutons", accentGrid);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.primary"), btnPrimaryColor, btnPrimaryPreview);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.success"), btnSuccessColor, btnSuccessPreview);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.warning"), btnWarningColor, btnWarningPreview);
+        addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.danger"), btnDangerColor, btnDangerPreview);
+        Tab accentTab = new Tab(i18n.get("theme.editor.tab.accent"), accentGrid);
 
         GridPane inputGrid = createColorGrid();
         row = 0;
         inputGrid.add(createSectionLabel(i18n.get("theme.preview.section.inputs")), 0, row++, 3, 1);
-        addRowWithPreview(inputGrid, row++, "Fond des inputs", inputBgColor, inputPreview);
-        addRowWithPreview(inputGrid, row++, "Bordure des inputs", inputBorderColor, inputBorderPreview);
+        addRowWithPreview(inputGrid, row++, i18n.get("theme.editor.color.input.background"), inputBgColor, inputPreview);
+        addRowWithPreview(inputGrid, row++, i18n.get("theme.editor.color.input.border"), inputBorderColor, inputBorderPreview);
 
         inputGrid.add(new Separator(), 0, row++, 3, 1);
         inputGrid.add(createSectionLabel(i18n.get("theme.preview.section.ui")), 0, row++, 3, 1);
-        addRowWithPreview(inputGrid, row++, "Bordures générales", borderColor, borderPreview);
-        addRowWithPreview(inputGrid, row++, "Scrollbar", scrollbarColor, scrollPreview);
+        addRowWithPreview(inputGrid, row++, i18n.get("theme.editor.color.border"), borderColor, borderPreview);
+        addRowWithPreview(inputGrid, row++, i18n.get("theme.editor.color.scrollbar"), scrollbarColor, scrollPreview);
         inputGrid.add(validationLabel, 0, row++, 3, 1);
-        Tab inputTab = new Tab("⚙️ Inputs & UI", inputGrid);
+        Tab inputTab = new Tab(i18n.get("theme.editor.tab.input_ui"), inputGrid);
 
         GridPane layoutGrid = createColorGrid();
         row = 0;
         layoutGrid.add(createSectionLabel(i18n.get("theme.preview.section.layout")), 0, row++, 3, 1);
-        addRowWithPreview(layoutGrid, row++, "Rayon (Border Radius)", radiusSlider, radiusPreview);
+        addRowWithPreview(layoutGrid, row++, i18n.get("theme.editor.layout.radius"), radiusSlider, radiusPreview);
 
         layoutGrid.add(new Label(i18n.get("theme.preview.layout.sidebar")), 0, row);
         layoutGrid.add(sidebarWidthSlider, 1, row);
         layoutGrid.add(sidebarPreview, 2, row++);
 
-        addRowWithPreview(layoutGrid, row++, "Couleur Sidebar", sidebarColorPicker, null);
-        Tab layoutTab = new Tab("📐 Layout", layoutGrid);
+        addRowWithPreview(layoutGrid, row++, i18n.get("theme.editor.layout.sidebar_color"), sidebarColorPicker, null);
+        Tab layoutTab = new Tab(i18n.get("theme.editor.tab.layout"), layoutGrid);
 
         tabPane.getTabs().addAll(baseTab, accentTab, inputTab, layoutTab);
 
@@ -197,24 +197,24 @@ public class ThemeEditorDialog {
         Label btnLabel = new Label(i18n.get("theme.preview.buttons"));
         VBox buttonsBox = new VBox(5);
         HBox btnRow1 = new HBox(5);
-        Button btnPrimary = new Button("Principal");
-        Button btnAccent = new Button("Accent");
+        Button btnPrimary = new Button(i18n.get("theme.preview.button.primary"));
+        Button btnAccent = new Button(i18n.get("theme.preview.button.accent"));
         btnRow1.getChildren().addAll(btnPrimary, btnAccent);
 
         HBox btnRow2 = new HBox(5);
-        Button btnSuccess = new Button("✓ Succès");
-        Button btnWarning = new Button("⚠ Warning");
-        Button btnDanger = new Button("🗑 Danger");
+        Button btnSuccess = new Button(i18n.get("theme.preview.button.success"));
+        Button btnWarning = new Button(i18n.get("theme.preview.button.warning"));
+        Button btnDanger = new Button(i18n.get("theme.preview.button.danger"));
         btnRow2.getChildren().addAll(btnSuccess, btnWarning, btnDanger);
         buttonsBox.getChildren().addAll(btnRow1, btnRow2);
 
         Label inputLabel = new Label(i18n.get("theme.preview.input"));
         TextField previewInput = new TextField();
-        previewInput.setPromptText("Placeholder text...");
+        previewInput.setPromptText(i18n.get("theme.preview.input.placeholder"));
         previewInput.setText(i18n.get("theme.preview.input.text"));
 
         Label textAreaLabel = new Label(i18n.get("theme.preview.textarea"));
-        TextArea previewTextArea = new TextArea("Contenu de la zone de texte\nAvec plusieurs lignes");
+        TextArea previewTextArea = new TextArea(i18n.get("theme.preview.textarea.content"));
         previewTextArea.setPrefRowCount(2);
         previewTextArea.setMaxHeight(50);
 
@@ -373,7 +373,7 @@ public class ThemeEditorDialog {
 
         String author = authorField.getText().trim();
         if (author.isEmpty()) {
-            author = "Custom";
+            author = i18n.get("theme.author.default");
         }
 
         ThemeColors colors = new ThemeColors(
@@ -425,14 +425,14 @@ public class ThemeEditorDialog {
     private void validateColors(Color bg, Color text, Label validationLabel) {
         StringBuilder warnings = new StringBuilder();
         if (bg.getOpacity() < 0.3) {
-            warnings.append("⚠ Arrière-plan trop transparent\n");
+            warnings.append(i18n.get("theme.validation.background.opacity")).append("\n");
         }
         if (text.getOpacity() < 0.5) {
-            warnings.append("⚠ Texte trop transparent\n");
+            warnings.append(i18n.get("theme.validation.text.opacity")).append("\n");
         }
         double contrast = Math.abs(getBrightness(bg) - getBrightness(text));
         if (contrast < 0.3) {
-            warnings.append("⚠ Faible contraste texte/fond\n");
+            warnings.append(i18n.get("theme.validation.contrast")).append("\n");
         }
         validationLabel.setText(warnings.toString());
     }
