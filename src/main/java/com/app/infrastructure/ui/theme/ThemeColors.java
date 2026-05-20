@@ -22,7 +22,15 @@ public record ThemeColors(
         Color scrollbarColor,
         double borderRadius,
         double sidebarWidth,
-        Color sidebarColor
+        Color sidebarColor,
+        Color chartColor1,
+        Color chartColor2,
+        Color chartColor3,
+        Color chartColor4,
+        Color chartColor5,
+        Color chartColor6,
+        Color chartColor7,
+        Color chartColor8
 ) {
     public Map<String, String> toMap() {
         Map<String, String> values = new HashMap<>();
@@ -45,6 +53,14 @@ public record ThemeColors(
         if (sidebarColor != null) {
             values.put("sidebarColor", toHex(sidebarColor));
         }
+        values.put("chartColor1", toHex(chartColor1));
+        values.put("chartColor2", toHex(chartColor2));
+        values.put("chartColor3", toHex(chartColor3));
+        values.put("chartColor4", toHex(chartColor4));
+        values.put("chartColor5", toHex(chartColor5));
+        values.put("chartColor6", toHex(chartColor6));
+        values.put("chartColor7", toHex(chartColor7));
+        values.put("chartColor8", toHex(chartColor8));
         return values;
     }
 

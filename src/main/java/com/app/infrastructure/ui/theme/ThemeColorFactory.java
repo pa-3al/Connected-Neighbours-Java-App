@@ -23,6 +23,14 @@ public class ThemeColorFactory {
     private static final String DEFAULT_INPUT_BORDER = "#3d4f6f";
     private static final String DEFAULT_BORDER_COLOR = "#3d4f6f";
     private static final String DEFAULT_SCROLLBAR_COLOR = "#3d4f6f";
+    private static final String DEFAULT_CHART_COLOR_1 = DEFAULT_BUTTON_PRIMARY;
+    private static final String DEFAULT_CHART_COLOR_2 = DEFAULT_ACCENT;
+    private static final String DEFAULT_CHART_COLOR_3 = DEFAULT_BUTTON_SUCCESS;
+    private static final String DEFAULT_CHART_COLOR_4 = DEFAULT_BUTTON_WARNING;
+    private static final String DEFAULT_CHART_COLOR_5 = DEFAULT_BUTTON_DANGER;
+    private static final String DEFAULT_CHART_COLOR_6 = DEFAULT_SECONDARY_TEXT;
+    private static final String DEFAULT_CHART_COLOR_7 = DEFAULT_BORDER_COLOR;
+    private static final String DEFAULT_CHART_COLOR_8 = DEFAULT_PRIMARY_TEXT;
     public static final String DEFAULT_SIDEBAR_COLOR = "#2b2b2b";
 
     public ThemeColors defaultForCreate() {
@@ -51,7 +59,15 @@ public class ThemeColorFactory {
                 parseColor(props, "scrollbarColor", fallback.scrollbarColor()),
                 parseDouble(props, "borderRadius", fallback.borderRadius()),
                 parseDouble(props, "sidebarWidth", fallback.sidebarWidth()),
-                parseColor(props, "sidebarColor", fallback.sidebarColor())
+                parseColor(props, "sidebarColor", fallback.sidebarColor()),
+                parseColor(props, "chartColor1", fallback.chartColor1()),
+                parseColor(props, "chartColor2", fallback.chartColor2()),
+                parseColor(props, "chartColor3", fallback.chartColor3()),
+                parseColor(props, "chartColor4", fallback.chartColor4()),
+                parseColor(props, "chartColor5", fallback.chartColor5()),
+                parseColor(props, "chartColor6", fallback.chartColor6()),
+                parseColor(props, "chartColor7", fallback.chartColor7()),
+                parseColor(props, "chartColor8", fallback.chartColor8())
         );
     }
 
@@ -73,7 +89,15 @@ public class ThemeColorFactory {
                 Color.web(DEFAULT_SCROLLBAR_COLOR),
                 borderRadius,
                 sidebarWidth,
-                sidebarColor
+                sidebarColor,
+                Color.web(DEFAULT_CHART_COLOR_1),
+                Color.web(DEFAULT_CHART_COLOR_2),
+                Color.web(DEFAULT_CHART_COLOR_3),
+                Color.web(DEFAULT_CHART_COLOR_4),
+                Color.web(DEFAULT_CHART_COLOR_5),
+                Color.web(DEFAULT_CHART_COLOR_6),
+                Color.web(DEFAULT_CHART_COLOR_7),
+                Color.web(DEFAULT_CHART_COLOR_8)
         );
     }
 
