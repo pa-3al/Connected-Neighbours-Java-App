@@ -35,6 +35,7 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.web.WebView;
+import javafx.util.StringConverter;
 
 public class IncidentController {
 
@@ -120,8 +121,8 @@ public class IncidentController {
     private void setupColumns() {
         colId.setCellValueFactory(cd -> new SimpleStringProperty(shortId(cd.getValue().id())));
         colTitle.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().title()));
-        colCategory.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().category())));
-        colSyncStatus.setCellValueFactory(cd -> new SimpleStringProperty(valOrEmpty(cd.getValue().syncStatus())));
+        colCategory.setCellValueFactory(cd -> new SimpleStringProperty(translateEnum("incident.category.", cd.getValue().category())));
+        colSyncStatus.setCellValueFactory(cd -> new SimpleStringProperty(translateEnum("sync.status.", cd.getValue().syncStatus())));
 
         colStatus.setCellValueFactory(cd -> {
             if (cd.getValue().status() != null) {
@@ -154,7 +155,7 @@ public class IncidentController {
                     Incident incident = getTableView().getItems().get(getIndex());
                     String html = incident.description();
                     if (incident.adminResponseMessage() != null && !incident.adminResponseMessage().isBlank()) {
-                        html += "<br><hr><br><b>Admin Response:</b><br>" + incident.adminResponseMessage();
+                        html += "<br><hr><br><b>" + i18n.get("incident.description.admin_response") + "</b><br>" + incident.adminResponseMessage();
                     }
                     showHtmlDialog(incident.title(), html);
                 });
@@ -204,9 +205,9 @@ public class IncidentController {
         if (selected == null) return;
 
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Resolve Incident");
-        dialog.setHeaderText("Resolve incident: " + selected.title());
-        dialog.setContentText("Admin response message:");
+        dialog.setTitle(i18n.get("incident.resolve.title"));
+        dialog.setHeaderText(i18n.get("incident.resolve.header", selected.title()));
+        dialog.setContentText(i18n.get("incident.resolve.response.prompt"));
 
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent()) {
@@ -221,7 +222,7 @@ public class IncidentController {
                 incidentService.updateIncident(updated);
                 loadData();
             } catch (Exception e) {
-                showError("Error resolving incident", e.getMessage());
+                showError(i18n.get("incident.resolve.error"), e.getMessage());
             }
         }
     }
@@ -242,7 +243,7 @@ public class IncidentController {
                 incidentService.deleteIncident(selected.id());
                 loadData();
             } catch (Exception e) {
-                showError("Error deleting incident", e.getMessage());
+                showError(i18n.get("incident.delete.error"), e.getMessage());
             }
         }
     }
@@ -250,10 +251,10 @@ public class IncidentController {
     @FXML
     private void handleAdd() {
         Dialog<Incident> dialog = new Dialog<>();
-        dialog.setTitle("New Incident");
-        dialog.setHeaderText("Report a new incident");
+        dialog.setTitle(i18n.get("incident.create.title"));
+        dialog.setHeaderText(i18n.get("incident.create.header"));
 
-        ButtonType createBtn = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
+        ButtonType createBtn = new ButtonType(i18n.get("incident.create.button"), ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(createBtn, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
@@ -262,16 +263,27 @@ public class IncidentController {
         grid.setPadding(new Insets(20, 150, 10, 10));
 
         TextField title = new TextField();
-        title.setPromptText("Title");
+        title.setPromptText(i18n.get("incident.title"));
         TextArea description = new TextArea();
-        description.setPromptText("Description HTML");
+        description.setPromptText(i18n.get("incident.description.prompt"));
         description.setPrefRowCount(3);
         ComboBox<IncidentCategory> category = new ComboBox<>();
         category.getItems().setAll(IncidentCategory.values());
+        category.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(IncidentCategory value) {
+                return translateEnum("incident.category.", value);
+            }
 
-        grid.add(new Label("Title:"), 0, 0);       grid.add(title, 1, 0);
-        grid.add(new Label("Category:"), 0, 1);     grid.add(category, 1, 1);
-        grid.add(new Label("Description:"), 0, 2);  grid.add(description, 1, 2);
+            @Override
+            public IncidentCategory fromString(String string) {
+                return null;
+            }
+        });
+
+        grid.add(new Label(i18n.get("incident.create.label.title")), 0, 0);       grid.add(title, 1, 0);
+        grid.add(new Label(i18n.get("incident.create.label.category")), 0, 1);     grid.add(category, 1, 1);
+        grid.add(new Label(i18n.get("incident.create.label.description")), 0, 2);  grid.add(description, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -312,6 +324,10 @@ public class IncidentController {
 
     private String valOrEmpty(Object obj) {
         return obj == null ? "" : obj.toString();
+    }
+
+    private String translateEnum(String prefix, Enum<?> value) {
+        return value == null ? "" : i18n.get(prefix + value.name().toLowerCase());
     }
 
     private void showError(String title, String content) {
