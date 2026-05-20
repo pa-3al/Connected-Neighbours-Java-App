@@ -137,6 +137,7 @@ public class MainController {
     private void bindI18n() {
         navHeaderLabel.textProperty().bind(i18n.createStringBinding("nav.header"));
         btnHome.textProperty().bind(i18n.createStringBinding("nav.home"));
+        btnIncidents.textProperty().bind(i18n.createStringBinding("nav.incidents"));
         btnQuery.textProperty().bind(i18n.createStringBinding("nav.query"));
         btnPlugins.textProperty().bind(i18n.createStringBinding("nav.plugins"));
         btnTheme.textProperty().bind(i18n.createStringBinding("nav.themes"));

@@ -10,7 +10,7 @@
     <HBox alignment="CENTER_LEFT" spacing="15">
         <Label text="%plugin.title" styleClass="section-title"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Label fx:id="countLabel" text="0 plugin(s)" styleClass="count-label"/>
+        <Label fx:id="countLabel" text="%plugin.count.initial" styleClass="count-label"/>
         <Button text="%plugin.add" onAction="#handleAddPlugin" styleClass="primary-button"/>
         <Button text="%plugin.refresh" onAction="#handleRefreshPlugins" styleClass="secondary-button"/>
     </HBox>

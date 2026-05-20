@@ -141,7 +141,7 @@ public class App extends Application {
             String savedTheme = themeAdapter.loadPreference();
             themeAdapter.applyTheme(savedTheme != null ? savedTheme : "default-dark");
 
-            stage.setTitle("Connected-Neighbours-Java-App v" + updateService.getCurrentVersion());
+            stage.setTitle(com.app.infrastructure.i18n.I18nService.getInstance().get("app.window.title", updateService.getCurrentVersion()));
             stage.setScene(scene);
             setStageIcon(stage);
 
@@ -241,7 +241,7 @@ public class App extends Application {
             loginStage.initOwner(owner);
         }
         loginStage.setResizable(false);
-        loginStage.setTitle("Connected-Neighbours-Java-App - Login");
+        loginStage.setTitle(com.app.infrastructure.i18n.I18nService.getInstance().get("app.login.window.title"));
 
         URL iconUrl = App.class.getResource("/icon.png");
         if (iconUrl != null) {

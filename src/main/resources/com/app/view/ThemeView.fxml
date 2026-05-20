@@ -18,7 +18,7 @@
             <HBox alignment="CENTER_LEFT" spacing="15">
                 <Label text="%theme.title" styleClass="section-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="currentThemeLabel" text="Thème actuel : Sombre" styleClass="current-theme-label"/>
+                <Label fx:id="currentThemeLabel" text="%theme.current.placeholder" styleClass="current-theme-label"/>
             </HBox>
             <Separator/>
             <VBox spacing="10" styleClass="card">
@@ -38,7 +38,7 @@
 
                 <HBox spacing="10" alignment="CENTER_LEFT">
                     <TextField fx:id="themeUrlField"
-                               promptText="https://exemple.com/theme.zip"
+                               promptText="%theme.install.url.placeholder"
                                HBox.hgrow="ALWAYS"/>
 
                     <Button fx:id="downloadButton"

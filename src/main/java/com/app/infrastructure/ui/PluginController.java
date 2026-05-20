@@ -51,22 +51,22 @@ public class PluginController {
     @FXML
     private void handleRefreshPlugins() {
         refreshPluginsList();
-        setStatus("✅ " + i18n.get("plugin.status.refreshed"));
+        setStatus(i18n.get("status.success", i18n.get("plugin.status.refreshed")));
     }
 
     @FXML
     private void handleAddPlugin() {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle(i18n.get("plugin.dialog.install.title"));
-        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Java Archive", "*.jar"));
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(i18n.get("file.filter.jar"), "*.jar"));
         java.io.File file = fileChooser.showOpenDialog(pluginsContainer.getScene().getWindow());
         if (file != null) {
             try {
                 pluginUseCase.installPlugin(file);
                 refreshPluginsList();
-                setStatus("✅ " + i18n.get("plugin.status.installed.success", file.getName()));
+                setStatus(i18n.get("status.success", i18n.get("plugin.status.installed.success", file.getName())));
             } catch (Exception e) {
-                setStatus("❌ " + i18n.get("plugin.status.installed.error", e.getMessage()));
+                setStatus(i18n.get("status.error", i18n.get("plugin.status.installed.error", e.getMessage())));
             }
         }
     }
@@ -78,10 +78,10 @@ public class PluginController {
             if (guide.exists()) {
                 java.awt.Desktop.getDesktop().open(guide);
             } else {
-                setStatus("❌ " + i18n.get("plugin.status.guide.missing"));
+                setStatus(i18n.get("status.error", i18n.get("plugin.status.guide.missing")));
             }
         } catch (Exception e) {
-            setStatus("❌ " + i18n.get("plugin.status.guide.error"));
+            setStatus(i18n.get("status.error", i18n.get("plugin.status.guide.error")));
         }
     }
     private void refreshPluginsList() {
@@ -173,7 +173,7 @@ public class PluginController {
             setStatus(i18n.get("plugin.status.toggled", plugin.name(), action));
         } catch (Exception e) {
             com.app.infrastructure.util.DailyLogger.logError("Plugins", "Failed to toggle plugin " + plugin.id(), e);
-            setStatus("❌ Erreur : " + e.getMessage());
+            setStatus(i18n.get("status.error", i18n.get("error.detail", e.getMessage())));
         }
     }
     private void handleUninstallPlugin(PluginMetadata plugin) {
@@ -187,10 +187,10 @@ public class PluginController {
                 com.app.infrastructure.util.DailyLogger.logWarn("Plugins", "User uninstalling plugin: " + plugin.name() + " (" + plugin.id() + ")");
                 pluginUseCase.uninstallPlugin(plugin.id());
                 refreshPluginsList();
-                setStatus("✅ " + i18n.get("plugin.status.uninstalled.success"));
+                setStatus(i18n.get("status.success", i18n.get("plugin.status.uninstalled.success")));
             } catch (Exception e) {
                 com.app.infrastructure.util.DailyLogger.logError("Plugins", "Failed to uninstall plugin " + plugin.id(), e);
-                setStatus("❌ " + e.getMessage());
+                setStatus(i18n.get("status.error", e.getMessage()));
             }
         }
     }

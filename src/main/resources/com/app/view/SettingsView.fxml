@@ -46,26 +46,26 @@
                     <PasswordField fx:id="dbPasswordField" HBox.hgrow="ALWAYS"/>
                 </HBox>
                 <HBox alignment="CENTER_RIGHT">
-                    <Button fx:id="saveDbButton" text="💾 Enregistrer" onAction="#handleSaveDbConfig" styleClass="primary-button"/>
+                    <Button fx:id="saveDbButton" text="%settings.db.save" onAction="#handleSaveDbConfig" styleClass="primary-button"/>
                 </HBox>
             </VBox>
 
             <VBox spacing="10" styleClass="card">
                 <Label fx:id="updatesTitleLabel" text="%settings.updates.title" styleClass="card-title"/>
                 <HBox alignment="CENTER_LEFT" spacing="10">
-                    <Label fx:id="versionLabel" text="Version actuelle : 1.0.0"/>
+                    <Label fx:id="versionLabel" text="%settings.updates.version.placeholder"/>
                     <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="statusLabel" text="" styleClass="status-label"/>
                 </HBox>
 
                 <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Button fx:id="checkButton" text="🔍 Vérifier les mises à jour" onAction="#handleCheckUpdates" styleClass="primary-button"/>
-                    <Button fx:id="downloadButton" text="⬇️ Télécharger" onAction="#handleDownloadUpdate" visible="false" styleClass="success-button"/>
-                    <Button fx:id="installButton" text="🚀 Installer et redémarrer" onAction="#handleInstallUpdate" visible="false" styleClass="warning-button"/>
+                    <Button fx:id="checkButton" text="%settings.updates.check.button" onAction="#handleCheckUpdates" styleClass="primary-button"/>
+                    <Button fx:id="downloadButton" text="%settings.updates.download.button" onAction="#handleDownloadUpdate" visible="false" styleClass="success-button"/>
+                    <Button fx:id="installButton" text="%settings.updates.install.button" onAction="#handleInstallUpdate" visible="false" styleClass="warning-button"/>
                 </HBox>
 
                 <HBox fx:id="progressContainer" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
-                    <Label fx:id="progressLabel" text="Progression :"/>
+                    <Label fx:id="progressLabel" text="%settings.updates.status.downloading"/>
                     <ProgressBar fx:id="downloadProgressBar" prefWidth="300" progress="0"/>
                 </HBox>
             </VBox>
@@ -73,7 +73,7 @@
             <VBox spacing="5" VBox.vgrow="ALWAYS" styleClass="card">
                 <Label fx:id="updateLogTitleLabel" text="%settings.updates.log.title" styleClass="card-title"/>
                 <TextArea fx:id="updateLogArea" editable="false" wrapText="true"
-                          promptText="Les informations de mise à jour apparaîtront ici..."
+                          promptText="%settings.updates.log.placeholder"
                           styleClass="log-area"/>
             </VBox>
 

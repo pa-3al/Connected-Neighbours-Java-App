@@ -50,7 +50,7 @@
                     <CategoryAxis fx:id="xAxisUsers" label="%dashboard.neighbourhood.chart.xaxis"/>
                 </xAxis>
                 <yAxis>
-                    <NumberAxis fx:id="yAxisUsers" label="Utilisateurs"/>
+                    <NumberAxis fx:id="yAxisUsers" label="%dashboard.neighbourhood.chart.users.yaxis"/>
                 </yAxis>
             </BarChart>
             <Label fx:id="noDataLabelUsers" text="%dashboard.neighbourhood.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>

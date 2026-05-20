@@ -28,7 +28,7 @@
     <center>
         <TableView fx:id="incidentTable" VBox.vgrow="ALWAYS">
             <columns>
-                <TableColumn fx:id="colId" text="ID" prefWidth="50"/>
+                <TableColumn fx:id="colId" text="%incident.id" prefWidth="50"/>
                 <TableColumn fx:id="colTitle" text="%incident.title" prefWidth="150"/>
                 <TableColumn fx:id="colCategory" text="%incident.category" prefWidth="100"/>
                 <TableColumn fx:id="colStatus" text="%incident.status" prefWidth="80"/>
