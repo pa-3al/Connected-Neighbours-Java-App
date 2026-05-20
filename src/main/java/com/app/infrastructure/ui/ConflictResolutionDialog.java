@@ -158,8 +158,8 @@ public class ConflictResolutionDialog {
         fieldLabel.getStyleClass().add("merge-field-label");
 
         ToggleGroup group = new ToggleGroup();
-        ToggleButton localBtn = new ToggleButton("Accept current");
-        ToggleButton serverBtn = new ToggleButton("Accept incoming");
+        ToggleButton localBtn = new ToggleButton(i18n.get("incident.sync.choice.accept_current"));
+        ToggleButton serverBtn = new ToggleButton(i18n.get("incident.sync.choice.accept_incoming"));
         localBtn.setToggleGroup(group);
         serverBtn.setToggleGroup(group);
 
@@ -170,7 +170,7 @@ public class ConflictResolutionDialog {
         blockHeader.setPadding(new Insets(8, 12, 8, 12));
         blockHeader.getStyleClass().add("merge-block-header");
 
-        Label localMarker = new Label("<<<<<<< " + i18n.get("incident.sync.choice.local") + " (current)");
+        Label localMarker = new Label("<<<<<<< " + i18n.get("incident.sync.choice.local") + " (" + i18n.get("incident.sync.marker.current") + ")");
         localMarker.getStyleClass().add("merge-marker-local");
         localMarker.setPadding(new Insets(8, 12, 2, 12));
         Label localValLabel = new Label(formatValue(localValue));
@@ -185,7 +185,7 @@ public class ConflictResolutionDialog {
         separator.getStyleClass().add("merge-separator");
         separator.setPadding(new Insets(2, 12, 2, 12));
 
-        Label serverMarker = new Label(">>>>>>> " + i18n.get("incident.sync.choice.server") + " (incoming)");
+        Label serverMarker = new Label(">>>>>>> " + i18n.get("incident.sync.choice.server") + " (" + i18n.get("incident.sync.marker.incoming") + ")");
         serverMarker.getStyleClass().add("merge-marker-server");
         serverMarker.setPadding(new Insets(8, 12, 2, 12));
         Label serverValLabel = new Label(formatValue(serverValue));

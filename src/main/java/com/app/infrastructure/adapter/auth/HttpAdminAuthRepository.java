@@ -21,6 +21,7 @@ import java.util.concurrent.TimeoutException;
 import com.app.domain.model.AuthResult;
 import com.app.domain.port.out.AuthRepository;
 import com.app.infrastructure.config.ConfigProvider;
+import com.app.infrastructure.i18n.I18nService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -39,6 +40,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final ConfigProvider configProvider;
+    private final I18nService i18n = I18nService.getInstance();
 
     public HttpAdminAuthRepository(ConfigProvider configProvider) {
         this.configProvider = configProvider;
@@ -95,7 +97,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
             Platform.runLater(() -> {
                 Stage ssoStage = new Stage();
                 ssoStage.initModality(Modality.APPLICATION_MODAL);
-                ssoStage.setTitle("SSO Login");
+                ssoStage.setTitle(i18n.get("app.sso.window.title"));
                 setStageIcon(ssoStage);
 
                 WebView webView = new WebView();
@@ -184,17 +186,17 @@ public class HttpAdminAuthRepository implements AuthRepository {
         String error = params.get("error");
 
         int statusCode = 200;
-        String message = "SSO login successful. You can close this tab.";
+        String message = i18n.get("app.sso.browser.success");
 
         if (error != null && !error.isBlank()) {
             statusCode = 401;
-            message = "SSO failed: " + error;
+            message = i18n.get("app.sso.browser.failed", error);
             if (!tokenFuture.isDone()) {
                 tokenFuture.completeExceptionally(new IllegalStateException("SSO failed: " + error));
             }
         } else if (accessToken == null || accessToken.isBlank()) {
             statusCode = 400;
-            message = "SSO failed: missing access token.";
+            message = i18n.get("app.sso.browser.missing_token");
             if (!tokenFuture.isDone()) {
                 tokenFuture.completeExceptionally(new IllegalStateException("SSO failed: missing access token"));
             }
@@ -232,7 +234,7 @@ public class HttpAdminAuthRepository implements AuthRepository {
 
     private String htmlResponse(String message) {
         return "<html><body style='font-family:sans-serif;padding:24px'>"
-                + "<h2>Connected-Neighbours-Java-App</h2>"
+                + "<h2>" + i18n.get("app.name") + "</h2>"
                 + "<p>" + message + "</p>"
                 + "</body></html>";
     }

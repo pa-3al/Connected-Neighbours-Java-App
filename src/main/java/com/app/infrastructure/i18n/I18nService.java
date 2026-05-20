@@ -66,7 +66,12 @@ public class I18nService {
 
     public String get(String key, Object... args) {
         try {
-            String pattern = resources.get().getString(key);
+            String pattern;
+            try {
+                pattern = resources.get().getString(key);
+            } catch (java.util.MissingResourceException missing) {
+                pattern = java.util.ResourceBundle.getBundle("com.app.i18n.messages", java.util.Locale.FRENCH, new UTF8Control()).getString(key);
+            }
             return java.text.MessageFormat.format(pattern, args);
         } catch (Exception e) {
             return "!" + key + "!";
