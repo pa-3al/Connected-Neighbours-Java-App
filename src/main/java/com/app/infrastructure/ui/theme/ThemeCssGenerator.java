@@ -15,14 +15,14 @@ public class ThemeCssGenerator {
                 -fx-focus-color: %s;
                 
                 /* Couleurs dynamiques des graphiques (BarChart, PieChart, Légendes) */
-                -fx-chart-color-1: %s;
-                -fx-chart-color-2: %s;
-                -fx-chart-color-3: %s;
-                -fx-chart-color-4: %s;
-                -fx-chart-color-5: %s;
-                -fx-chart-color-6: %s;
-                -fx-chart-color-7: %s;
-                -fx-chart-color-8: %s;
+                CHART_COLOR_1: %s;
+                CHART_COLOR_2: %s;
+                CHART_COLOR_3: %s;
+                CHART_COLOR_4: %s;
+                CHART_COLOR_5: %s;
+                CHART_COLOR_6: %s;
+                CHART_COLOR_7: %s;
+                CHART_COLOR_8: %s;
             }
             .label { -fx-text-fill: %s; -fx-font-size: 14px; }
             .section-title { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: %s; }

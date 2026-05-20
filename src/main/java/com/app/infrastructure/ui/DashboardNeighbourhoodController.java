@@ -61,6 +61,9 @@ public class DashboardNeighbourhoodController {
     private void applyDynamicTheme() {
         File cssFile = new File("src/main/resources/themes/dynamic.css");
         if (cssFile.exists() && rootNode != null) {
+            if (!rootNode.getStyleClass().contains("root")) {
+                rootNode.getStyleClass().add("root");
+            }
             rootNode.getStylesheets().clear();
             rootNode.getStylesheets().add(cssFile.toURI().toString());
         }
