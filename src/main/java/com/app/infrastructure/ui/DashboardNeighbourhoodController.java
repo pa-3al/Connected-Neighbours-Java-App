@@ -54,10 +54,6 @@ public class DashboardNeighbourhoodController {
         Platform.runLater(this::loadChartData);
     }
 
-    // -------------------------------------------------------------------------
-    // Thème
-    // -------------------------------------------------------------------------
-
     private void applyDynamicTheme() {
         File cssFile = new File("src/main/resources/themes/dynamic.css");
         if (cssFile.exists() && rootNode != null) {
@@ -68,10 +64,6 @@ public class DashboardNeighbourhoodController {
             rootNode.getStylesheets().add(cssFile.toURI().toString());
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Chargement des données
-    // -------------------------------------------------------------------------
 
     private void loadChartData() {
         try {
@@ -188,19 +180,6 @@ public class DashboardNeighbourhoodController {
             displayNoDataUsers();
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Application des classes CSS du thème dynamique
-    // -------------------------------------------------------------------------
-
-    /**
-     * Applique les classes CSS du thème sur les barres d'un BarChart.
-     *
-     * Les nœuds visuels des données ne sont créés par JavaFX qu'après le
-     * premier layout pass. On utilise un listener sur nodeProperty() pour
-     * s'assurer que la classe est bien appliquée dès que le nœud existe,
-     * même si ce n'est pas encore le cas au moment de l'appel.
-     */
     private void applyBarThemeClasses(XYChart.Series<String, Number> series) {
         int[] index = {0};
         for (XYChart.Data<String, Number> data : series.getData()) {
@@ -221,10 +200,6 @@ public class DashboardNeighbourhoodController {
         bar.getStyleClass().add("default-color" + (index % 8));
     }
 
-    /**
-     * Applique les classes CSS du thème sur les tranches d'un PieChart.
-     * Même logique que pour les barres : listener sur nodeProperty().
-     */
     private void applyPieThemeClasses() {
         int[] index = {0};
         for (PieChart.Data data : countryPieChart.getData()) {
@@ -245,10 +220,6 @@ public class DashboardNeighbourhoodController {
         slice.getStyleClass().add("default-color" + (index % 8));
     }
 
-    // -------------------------------------------------------------------------
-    // Affichage "pas de données"
-    // -------------------------------------------------------------------------
-
     private void displayNoDataPop() {
         if (populationChart != null) populationChart.setVisible(false);
         if (noDataLabelPop != null) noDataLabelPop.setVisible(true);
@@ -263,10 +234,6 @@ public class DashboardNeighbourhoodController {
         if (usersPerNeighbourhoodChart != null) usersPerNeighbourhoodChart.setVisible(false);
         if (noDataLabelUsers != null) noDataLabelUsers.setVisible(true);
     }
-
-    // -------------------------------------------------------------------------
-    // Utilitaires axe Y
-    // -------------------------------------------------------------------------
 
     private void configureNumberAxis(NumberAxis axis, double maxValue) {
         if (axis == null) return;
