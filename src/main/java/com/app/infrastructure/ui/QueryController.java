@@ -5,11 +5,14 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -22,14 +25,17 @@ import java.util.concurrent.TimeUnit;
 
 public class QueryController implements Initializable {
 
-    @FXML private TextField queryInput;
-    @FXML private TextArea  resultsArea;
-    @FXML private Button    executeButton;
-    @FXML private Label     promptLabel;
+    @FXML private TextField  queryInput;
+    @FXML private ScrollPane resultsScroll;
+    @FXML private TextFlow   resultsFlow;
+    @FXML private Button     executeButton;
+    @FXML private Label      promptLabel;
+    @FXML private Button     reconnectButton;
 
-    private Process         pythonProcess;
-    private BufferedWriter  processIn;
-    private BufferedReader  processOut;
+    private Process        pythonProcess;
+    private BufferedWriter processIn;
+    private BufferedReader processOut;
+    private boolean        isProcessRunning = false;
 
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "python-io");
@@ -51,17 +57,25 @@ public class QueryController implements Initializable {
             String exePath = extractInterpreter();
 
             ProcessBuilder pb = new ProcessBuilder(exePath);
+            pb.environment().put("PYTHONIOENCODING", "UTF-8");
             pb.redirectErrorStream(true);
             pb.directory(resolveWorkDir().toFile());
 
             pythonProcess = pb.start();
-            processIn  = new BufferedWriter(new OutputStreamWriter(pythonProcess.getOutputStream()));
-            processOut = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+            isProcessRunning = true;
+
+            Platform.runLater(() -> toggleReconnectButton(false));
+
+            processIn  = new BufferedWriter(new OutputStreamWriter(pythonProcess.getOutputStream(), StandardCharsets.UTF_8));
+            processOut = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream(), StandardCharsets.UTF_8));
 
             ioExecutor.submit(this::readUntilEnd);
 
+            pythonProcess.onExit().thenRun(() -> Platform.runLater(this::handleProcessExit));
+
         } catch (Exception e) {
             appendResult("Impossible de démarrer l'interpréteur : " + e.getMessage());
+            Platform.runLater(this::handleProcessExit);
         }
     }
 
@@ -70,14 +84,13 @@ public class QueryController implements Initializable {
         String  resName   = isWindows ? "interpreter/interpreter.exe" : "interpreter/interpreter";
         String  exeName   = isWindows ? "interpreter.exe" : "interpreter";
 
-        Path targetDir  = resolveWorkDir().resolve("bin");
+        Path targetDir = resolveWorkDir().resolve("bin");
         Files.createDirectories(targetDir);
-        Path targetExe  = targetDir.resolve(exeName);
+        Path targetExe = targetDir.resolve(exeName);
 
         try (InputStream in = getClass().getClassLoader().getResourceAsStream(resName)) {
             if (in == null) {
-                throw new FileNotFoundException(
-                        "Ressource introuvable dans le jar : " + resName);
+                throw new FileNotFoundException("Ressource introuvable dans le jar : " + resName);
             }
             Files.copy(in, targetExe, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -123,6 +136,12 @@ public class QueryController implements Initializable {
         });
     }
 
+    @FXML
+    private void clearConsole() {
+        resultsFlow.getChildren().clear();
+        queryInput.requestFocus();
+    }
+
     private void readUntilEnd() {
         StringBuilder output = new StringBuilder();
         String        prompt = null;
@@ -141,8 +160,8 @@ public class QueryController implements Initializable {
             output.append("Erreur de lecture : ").append(e.getMessage());
         }
 
-        final String text   = output.toString().trim();
-        final String p      = prompt;
+        final String text = output.toString().trim();
+        final String p    = prompt;
 
         Platform.runLater(() -> {
             if (!text.isEmpty()) appendResult(text);
@@ -151,7 +170,13 @@ public class QueryController implements Initializable {
     }
 
     private void appendResult(String text) {
-        resultsArea.appendText(text + "\n");
+        Text node = new Text(text + "\n");
+        node.getStyleClass().add("log-text");
+
+        node.setStyle("-fx-fill: -fx-color-text;");
+
+        resultsFlow.getChildren().add(node);
+        Platform.runLater(() -> resultsScroll.setVvalue(1.0));
     }
 
     private void updatePrompt(String prompt) {
@@ -168,11 +193,47 @@ public class QueryController implements Initializable {
         ioExecutor.shutdownNow();
         if (pythonProcess != null && pythonProcess.isAlive()) {
             try {
-                processIn.write("EXIT;\n");
+                processIn.write("exit;\n");
                 processIn.flush();
-                pythonProcess.waitFor(2, TimeUnit.SECONDS);
-            } catch (Exception ignored) {}
-            pythonProcess.destroyForcibly();
+                processIn.close();
+            } catch (IOException ignored) {
+            }
+            try {
+                if (!pythonProcess.waitFor(2, TimeUnit.SECONDS)) {
+                    pythonProcess.destroyForcibly();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                pythonProcess.destroyForcibly();
+            }
+        }
+    }
+
+    private void handleProcessExit() {
+        isProcessRunning = false;
+        setInputEnabled(false);
+        toggleReconnectButton(true);
+        appendResult("\n[Interpréteur déconnecté. Cliquez sur 'Relancer' pour redémarrer]");
+
+        // Fermeture propre des flux locaux devenus obsolètes
+        try { if (processIn != null) processIn.close(); } catch (IOException ignored) {}
+        try { if (processOut != null) processOut.close(); } catch (IOException ignored) {}
+    }
+
+    @FXML
+    private void handleReconnect() {
+        appendResult("\n[Relancement de l'interpréteur...]");
+        startPythonProcess();
+    }
+
+    private void toggleReconnectButton(boolean showReconnect) {
+        if (reconnectButton != null) {
+            reconnectButton.setVisible(showReconnect);
+            reconnectButton.setManaged(showReconnect);
+        }
+        // Si le processus tourne, on réactive les inputs
+        if (!showReconnect) {
+            setInputEnabled(true);
         }
     }
 }

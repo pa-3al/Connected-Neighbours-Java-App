@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
 <VBox spacing="15"
       xmlns="http://javafx.com/javafx/21"
@@ -26,16 +27,32 @@
                     text="%query.execute"
                     styleClass="primary-button"
                     onAction="#executeQuery"/>
+            <Button fx:id="clearButton"
+                    text="Réinitialiser"
+                    styleClass="secondary-button"
+                    onAction="#clearConsole"/>
+            <Button fx:id="reconnectButton"
+                    text="Relancer"
+                    styleClass="button-primary"
+                    onAction="#handleReconnect"
+                    visible="false"
+                    managed="false"/>
         </HBox>
         <Label text="%query.syntax" styleClass="text-muted"/>
     </VBox>
 
     <VBox spacing="10" VBox.vgrow="ALWAYS" styleClass="card">
-        <Label text="%query.results.title" styleClass="card-title"/>
-        <TextArea fx:id="resultsArea"
-                  editable="false"
-                  VBox.vgrow="ALWAYS"
-                  styleClass="text-area, log-area"
-                  promptText="%query.results.placeholder"/>
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="%query.results.title" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+        </HBox>
+        <ScrollPane fx:id="resultsScroll"
+                    fitToWidth="true"
+                    VBox.vgrow="ALWAYS"
+                    styleClass="log-scroll"
+                    focusTraversable="false">
+            <TextFlow fx:id="resultsFlow" styleClass="log-area">
+                <padding><Insets topRightBottomLeft="8"/></padding>
+            </TextFlow>
+        </ScrollPane>
     </VBox>
 </VBox>
