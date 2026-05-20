@@ -40,6 +40,13 @@ public class FileSystemPluginAdapter implements PluginRepository {
         this.stateFilePath = Path.of(statePath);
         this.maxJarSizeBytes = maxJarSizeBytes;
         ensureDirectoryExists();
+        disableJarCaching();
+    }
+    private void disableJarCaching() {
+        try {
+            java.net.URLConnection.setDefaultUseCaches("jar", false);
+        } catch (Exception ignored) {
+        }
     }
     private void ensureDirectoryExists() {
         try {

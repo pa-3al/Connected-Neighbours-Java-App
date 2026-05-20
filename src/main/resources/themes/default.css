@@ -34,6 +34,22 @@
     -fx-color-warning: #f59e0b;
     -fx-color-error: #F14444;
     -fx-color-info: #06b6d4;
+    CHART_COLOR_1: #22c55e;
+    CHART_COLOR_2: #16a34a;
+    CHART_COLOR_3: #4ade80;
+    CHART_COLOR_4: #86efac;
+    CHART_COLOR_5: #15803d;
+    CHART_COLOR_6: #166534;
+    CHART_COLOR_7: #bbf7d0;
+    CHART_COLOR_8: #14532d;
+    -fx-chart-color-1: CHART_COLOR_1;
+    -fx-chart-color-2: CHART_COLOR_2;
+    -fx-chart-color-3: CHART_COLOR_3;
+    -fx-chart-color-4: CHART_COLOR_4;
+    -fx-chart-color-5: CHART_COLOR_5;
+    -fx-chart-color-6: CHART_COLOR_6;
+    -fx-chart-color-7: CHART_COLOR_7;
+    -fx-chart-color-8: CHART_COLOR_8;
 }
 
 /* ═══════════════════════════════════════════════════════════════
