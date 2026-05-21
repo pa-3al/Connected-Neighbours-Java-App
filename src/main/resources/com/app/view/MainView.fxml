@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.geometry.Insets?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.app.infrastructure.ui.MainController" prefHeight="600.0" prefWidth="800.0">
     <center>
@@ -25,11 +26,36 @@
 
                         <VBox spacing="2">
                             <Label text="%nav.section.general" styleClass="sidebar-category-title"/>
-                            <Button text="%nav.home" fx:id="btnHome" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showHome"/>
-                            <Button text="%nav.incidents" fx:id="btnIncidents" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showIncidents"/>
-                            <Button text="%nav.query" fx:id="btnQuery" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showQuery"/>
-                            <Button text="%nav.plugins" fx:id="btnPlugins" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showPlugins"/>
-                            <Button text="%nav.themes" fx:id="btnTheme" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showThemes"/>
+
+                            <Button text="%nav.home" fx:id="btnHome" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showHome">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-home" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
+
+                            <Button text="%nav.incidents" fx:id="btnIncidents" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showIncidents">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-exclamation-triangle" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
+
+                            <Button text="%nav.query" fx:id="btnQuery" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showQuery">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-search" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
+
+                            <Button text="%nav.plugins" fx:id="btnPlugins" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showPlugins">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-plug" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
+
+                            <Button text="%nav.themes" fx:id="btnTheme" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showThemes">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-paint-brush" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
                         </VBox>
 
                         <VBox spacing="2">
@@ -41,7 +67,11 @@
 
                         <VBox spacing="2">
                             <Label text="%nav.section.settings" styleClass="sidebar-category-title"/>
-                            <Button text="%settings.title" fx:id="btnSettings" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showSettings"/>
+                            <Button text="%settings.title" fx:id="btnSettings" maxWidth="Infinity" styleClass="sidebar-button" onAction="#showSettings">
+                                <graphic>
+                                    <FontIcon iconLiteral="fas-cog" iconSize="14" styleClass="sidebar-icon"/>
+                                </graphic>
+                            </Button>
                         </VBox>
                     </VBox>
                 </StackPane>
