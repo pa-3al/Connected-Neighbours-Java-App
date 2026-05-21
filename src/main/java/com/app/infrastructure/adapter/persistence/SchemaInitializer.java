@@ -196,6 +196,32 @@ public class SchemaInitializer {
                 )
             """);
 
+            stmt.execute("""
+            CREATE TABLE IF NOT EXISTS services (
+                id VARCHAR(36) PRIMARY KEY,
+                type VARCHAR(50),
+                title VARCHAR(255) NOT NULL,
+                description VARCHAR(2048) NOT NULL,
+                points INTEGER DEFAULT 0,
+                status VARCHAR(50) DEFAULT 'PENDING',
+                moderator_comment TEXT,
+                signature_url VARCHAR(255),
+                contract_id VARCHAR(36),
+                service_type_id VARCHAR(36),
+                address_id VARCHAR(36),
+                created_by_user_id VARCHAR(36) NOT NULL,
+                approved_by_moderator_id VARCHAR(36),
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                last_modified TIMESTAMP,
+                sync_status VARCHAR(50),
+                FOREIGN KEY (contract_id) REFERENCES contract_templates(id),
+                FOREIGN KEY (service_type_id) REFERENCES categories(id),
+                FOREIGN KEY (address_id) REFERENCES addresses(id),
+                FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+            )
+        """);
+
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
