@@ -1,6 +1,6 @@
 package com.app.infrastructure.sync;
 
-import com.app.domain.model.Neighbourhood;
+import com.app.domain.model.Service;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.config.ConfigProvider;
 import com.app.infrastructure.util.DailyLogger;
@@ -16,51 +16,56 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class NeighbourhoodBackendGateway {
+public class ServiceBackendGateway {
 
     private final ConfigProvider configProvider;
     private final AuthenticatedHttpClient authenticatedHttpClient;
 
-    public NeighbourhoodBackendGateway(ConfigProvider configProvider, AuthenticatedHttpClient authenticatedHttpClient) {
+    public ServiceBackendGateway(ConfigProvider configProvider, AuthenticatedHttpClient authenticatedHttpClient) {
         this.configProvider = Objects.requireNonNull(configProvider);
         this.authenticatedHttpClient = Objects.requireNonNull(authenticatedHttpClient);
     }
 
-    public Map<String, Neighbourhood> fetchNeighbourhoodsById() {
+    public Map<String, Service> fetchServicesById() {
         String rawUrl = configProvider.getSyncDatabaseUrl();
         if (rawUrl == null || rawUrl.isBlank()) {
-            DailyLogger.logWarn("Sync", "app.sync.db.url is missing. Cannot fetch neighbourhoods.");
             return new HashMap<>();
         }
 
         String jdbcUrl = toJdbcPostgresUrl(rawUrl);
-        Map<String, Neighbourhood> byId = new HashMap<>();
+        Map<String, Service> byId = new HashMap<>();
 
-        String sql = "SELECT id, name, description, city, postal_code, country_code, estimated_population, polygon::text as polygon, area FROM neighbourhood";
+        String sql = "SELECT id, type, title, description, points, status, moderator_comment, signature_url, contract_id, service_type_id, address_id, created_by_user_id, approved_by_moderator_id, created_at, updated_at FROM services";
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Neighbourhood neighbourhood = new Neighbourhood(
+                Service service = new Service(
                         rs.getString("id"),
-                        rs.getString("name"),
+                        rs.getString("type"),
+                        rs.getString("title"),
                         rs.getString("description"),
-                        rs.getString("city"),
-                        rs.getString("postal_code"),
-                        rs.getString("country_code"),
-                        rs.getObject("estimated_population") != null ? rs.getInt("estimated_population") : null,
-                        rs.getString("polygon"),
-                        rs.getObject("area") != null ? rs.getInt("area") : null,
+                        rs.getInt("points"),
+                        rs.getString("status"),
+                        rs.getString("moderator_comment"),
+                        rs.getString("signature_url"),
+                        rs.getString("contract_id"),
+                        rs.getString("service_type_id"),
+                        rs.getString("address_id"),
+                        rs.getString("created_by_user_id"),
+                        rs.getString("approved_by_moderator_id"),
+                        rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null,
+                        rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null,
                         null,
                         null
                 );
-                byId.put(neighbourhood.id(), neighbourhood);
+                byId.put(service.id(), service);
             }
-            DailyLogger.logInfo("Sync", "Fetched " + byId.size() + " neighbourhoods from PostgreSQL.");
+            DailyLogger.logInfo("Sync", "Fetched " + byId.size() + " services from PostgreSQL.");
         } catch (Exception e) {
-            DailyLogger.logError("Sync", "Failed to fetch neighbourhoods from PostgreSQL: " + e.getMessage(), e);
+            DailyLogger.logError("Sync", "Failed to fetch services from PostgreSQL: " + e.getMessage(), e);
         }
 
         return byId;
