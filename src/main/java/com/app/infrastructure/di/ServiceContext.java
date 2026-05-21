@@ -48,6 +48,8 @@ public class ServiceContext {
     private volatile EventTagService eventTagService;
     private volatile EventPlanningService eventPlanningService;
     private volatile EventParticipationService eventParticipationService;
+    private volatile ServiceService serviceService;
+
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -67,6 +69,15 @@ public class ServiceContext {
             }
         }
         return incidentService;
+    }
+
+    public ServiceService getServiceService() {
+        if (serviceService == null) {
+            synchronized (this) {
+                if (serviceService == null) serviceService = new ServiceService(getDatabaseConfig());
+            }
+        }
+        return serviceService;
     }
 
     public UserService getUserService() {
@@ -200,7 +211,8 @@ public class ServiceContext {
                             getEventService(),
                             getEventTagService(),
                             getEventPlanningService(),
-                            getEventParticipationService()
+                            getEventParticipationService(),
+                            getServiceService()
                     );
                 }
             }
