@@ -46,6 +46,7 @@
                     <PasswordField fx:id="dbPasswordField" HBox.hgrow="ALWAYS"/>
                 </HBox>
                 <HBox alignment="CENTER_RIGHT">
+                    <Button fx:id="testDbButton" text="%settings.db.test" onAction="#handleTestDbConfig" styleClass="secondary-button"/>
                     <Button fx:id="saveDbButton" text="%settings.db.save" onAction="#handleSaveDbConfig" styleClass="primary-button"/>
                 </HBox>
             </VBox>
