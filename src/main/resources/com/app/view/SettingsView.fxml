@@ -21,13 +21,13 @@
             <HBox alignment="CENTER_LEFT" spacing="15">
                 <Label fx:id="settingsTitleLabel" text="%settings.title" styleClass="section-title">
                     <graphic>
-                        <FontIcon iconLiteral="fas-cog" iconSize="18"/>
+                        <FontIcon iconLiteral="fas-cog" iconSize="18" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
                 <Region HBox.hgrow="ALWAYS"/>
                 <ToggleButton fx:id="onlineToggle" text="%settings.online.active" styleClass="online-toggle" minWidth="120">
                     <graphic>
-                        <FontIcon iconLiteral="fas-wifi" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-wifi" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </ToggleButton>
             </HBox>
@@ -35,7 +35,7 @@
             <VBox spacing="10" styleClass="card">
                 <Label fx:id="generalLabel" text="%settings.general" styleClass="card-title">
                     <graphic>
-                        <FontIcon iconLiteral="fas-sliders-h" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-sliders-h" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
                 <HBox alignment="CENTER_LEFT" spacing="20">
@@ -47,7 +47,7 @@
             <VBox spacing="10" styleClass="card">
                 <Label fx:id="dbConfigTitleLabel" text="%settings.db.title" styleClass="card-title">
                     <graphic>
-                        <FontIcon iconLiteral="fas-database" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-database" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
                 <HBox alignment="CENTER_LEFT" spacing="20">
@@ -65,12 +65,12 @@
                 <HBox alignment="CENTER_RIGHT" spacing="10">
                     <Button fx:id="testDbButton" text="%settings.db.test" onAction="#handleTestDbConfig" styleClass="secondary-button">
                         <graphic>
-                            <FontIcon iconLiteral="fas-vial" iconSize="14"/>
+                            <FontIcon iconLiteral="fas-vial" iconSize="14" styleClass="sidebar-icon"/>
                         </graphic>
                     </Button>
                     <Button fx:id="saveDbButton" text="%settings.db.save" onAction="#handleSaveDbConfig" styleClass="primary-button">
                         <graphic>
-                            <FontIcon iconLiteral="fas-save" iconSize="14"/>
+                            <FontIcon iconLiteral="fas-save" iconSize="14" styleClass="sidebar-icon"/>
                         </graphic>
                     </Button>
                 </HBox>
@@ -79,7 +79,7 @@
             <VBox spacing="10" styleClass="card">
                 <Label fx:id="updatesTitleLabel" text="%settings.updates.title" styleClass="card-title">
                     <graphic>
-                        <FontIcon iconLiteral="fas-cloud-download-alt" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-cloud-download-alt" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
                 <HBox alignment="CENTER_LEFT" spacing="10">
@@ -91,17 +91,17 @@
                 <HBox spacing="10" alignment="CENTER_LEFT">
                     <Button fx:id="checkButton" text="%settings.updates.check.button" onAction="#handleCheckUpdates" styleClass="primary-button">
                         <graphic>
-                            <FontIcon iconLiteral="fas-sync-alt" iconSize="14"/>
+                            <FontIcon iconLiteral="fas-sync-alt" iconSize="14" styleClass="sidebar-icon"/>
                         </graphic>
                     </Button>
                     <Button fx:id="downloadButton" text="%settings.updates.download.button" onAction="#handleDownloadUpdate" visible="false" styleClass="success-button">
                         <graphic>
-                            <FontIcon iconLiteral="fas-download" iconSize="14"/>
+                            <FontIcon iconLiteral="fas-download" iconSize="14" styleClass="sidebar-icon"/>
                         </graphic>
                     </Button>
                     <Button fx:id="installButton" text="%settings.updates.install.button" onAction="#handleInstallUpdate" visible="false" styleClass="warning-button">
                         <graphic>
-                            <FontIcon iconLiteral="fas-wrench" iconSize="14"/>
+                            <FontIcon iconLiteral="fas-wrench" iconSize="14" styleClass="sidebar-icon"/>
                         </graphic>
                     </Button>
                 </HBox>
@@ -115,7 +115,7 @@
             <VBox spacing="5" VBox.vgrow="ALWAYS" styleClass="card">
                 <Label fx:id="updateLogTitleLabel" text="%settings.updates.log.title" styleClass="card-title">
                     <graphic>
-                        <FontIcon iconLiteral="fas-clipboard-list" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-clipboard-list" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
                 <TextArea fx:id="updateLogArea" editable="false" wrapText="true"
@@ -130,7 +130,7 @@
                        styleClass="card-title"
                        style="-fx-text-fill: #e74c3c;">
                     <graphic>
-                        <FontIcon iconLiteral="fas-exclamation-triangle" iconSize="14"/>
+                        <FontIcon iconLiteral="fas-exclamation-triangle" iconSize="14" styleClass="sidebar-icon"/>
                     </graphic>
                 </Label>
 
