@@ -49,7 +49,7 @@ public class ServiceContext {
     private volatile EventPlanningService eventPlanningService;
     private volatile EventParticipationService eventParticipationService;
     private volatile ServiceService serviceService;
-
+    private volatile ServiceExpectedDateService serviceExpectedDateService;
 
     public ServiceContext(boolean isHeadless) {
         this.isHeadless = isHeadless;
@@ -212,7 +212,8 @@ public class ServiceContext {
                             getEventTagService(),
                             getEventPlanningService(),
                             getEventParticipationService(),
-                            getServiceService()
+                            getServiceService(),
+                            getServiceExpectedDateService()
                     );
                 }
             }
@@ -229,6 +230,17 @@ public class ServiceContext {
             }
         }
         return updateAdapter;
+    }
+
+    public ServiceExpectedDateService getServiceExpectedDateService() {
+        if (serviceExpectedDateService == null) {
+            synchronized (this) {
+                if (serviceExpectedDateService == null) {
+                    serviceExpectedDateService = new ServiceExpectedDateService(getDatabaseConfig());
+                }
+            }
+        }
+        return serviceExpectedDateService;
     }
 
     public HttpAdminAuthRepository getAuthRepository() {

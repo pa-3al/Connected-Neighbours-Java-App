@@ -23,6 +23,7 @@ public class BackgroundSyncManager {
     private final EventPlanningSyncManager eventPlanningSyncManager;
     private final EventParticipationSyncManager eventParticipationSyncManager;
     private final ServiceSyncManager serviceSyncManager;
+    private final ServiceExpectedDateSyncManager serviceExpectedDateSyncManager;
 
     public BackgroundSyncManager(
             UserService userService,
@@ -36,7 +37,8 @@ public class BackgroundSyncManager {
             EventTagService eventTagService,
             EventPlanningService eventPlanningService,
             EventParticipationService eventParticipationService,
-            ServiceService serviceService
+            ServiceService serviceService,
+            ServiceExpectedDateService serviceExpectedDateService
     ) {
         this.userService = userService;
         ConfigProvider config = new ConfigProvider();
@@ -53,6 +55,7 @@ public class BackgroundSyncManager {
         this.eventPlanningSyncManager = new EventPlanningSyncManager(eventPlanningService, config, authClient);
         this.eventParticipationSyncManager = new EventParticipationSyncManager(eventParticipationService, config, authClient);
         this.serviceSyncManager = new ServiceSyncManager(serviceService);
+        this.serviceExpectedDateSyncManager = new ServiceExpectedDateSyncManager(serviceExpectedDateService);
     }
 
     public void startAutomaticSyncOnStartup() {
@@ -74,6 +77,7 @@ public class BackgroundSyncManager {
                             eventParticipationSyncManager.syncWithBackend(conflict -> conflict.server());
                             incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
                             serviceSyncManager.syncWithBackend(conflict -> conflict.server());
+                            serviceExpectedDateSyncManager.syncWithBackend(conflict -> conflict.server());
                         } catch (Exception dbError) {
                             DailyLogger.logError("Sync", "Erreur BDD au démarrage, synchro ignorée: " + dbError.getMessage(), dbError);
                         } finally {
