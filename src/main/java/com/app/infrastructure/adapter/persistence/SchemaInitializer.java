@@ -222,6 +222,18 @@ public class SchemaInitializer {
             )
         """);
 
+        stmt.execute("""
+            CREATE TABLE IF NOT EXISTS service_expected_dates (
+                id VARCHAR(36) PRIMARY KEY,
+                start_date TIMESTAMP NOT NULL,
+                end_date TIMESTAMP,
+                service_id VARCHAR(36),
+                last_modified TIMESTAMP,
+                sync_status VARCHAR(50),
+                FOREIGN KEY (service_id) REFERENCES services(id)
+            )
+        """);
+
             addColumnIfMissing(conn, "reports", "reported_by_user_id", "VARCHAR(36)");
             addColumnIfMissing(conn, "users", "last_modified", "TIMESTAMP");
             addColumnIfMissing(conn, "users", "sync_status", "VARCHAR(50)");
