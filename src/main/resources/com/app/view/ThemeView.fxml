@@ -2,6 +2,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -16,24 +17,40 @@
                 <Insets topRightBottomLeft="20"/>
             </padding>
             <HBox alignment="CENTER_LEFT" spacing="15">
-                <Label text="%theme.title" styleClass="section-title"/>
+                <Label text="%theme.title" styleClass="section-title">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-paint-brush" iconSize="18" styleClass="sidebar-icon"/>
+                    </graphic>
+                </Label>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="currentThemeLabel" text="%theme.current.placeholder" styleClass="current-theme-label"/>
             </HBox>
             <Separator/>
             <VBox spacing="10" styleClass="card">
                 <HBox alignment="CENTER_LEFT" spacing="10">
-                    <Label text="%theme.create.title" styleClass="card-title"/>
+                    <Label text="%theme.create.title" styleClass="card-title">
+                        <graphic>
+                            <FontIcon iconLiteral="fas-magic" iconSize="14" styleClass="sidebar-icon"/>
+                        </graphic>
+                    </Label>
                     <Region HBox.hgrow="ALWAYS"/>
                     <Button text="%theme.create.button"
                             onAction="#handleCreateTheme"
-                            styleClass="success-button"/>
+                            styleClass="success-button">
+                        <graphic>
+                            <FontIcon iconLiteral="fas-plus" iconSize="14" styleClass="sidebar-icon"/>
+                        </graphic>
+                    </Button>
                 </HBox>
                 <Label text="%theme.description" styleClass="text-muted"/>
             </VBox>
             <VBox spacing="10" styleClass="card">
 
-                <Label text="%theme.install.title" styleClass="card-title"/>
+                <Label text="%theme.install.title" styleClass="card-title">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-box-open" iconSize="14" styleClass="sidebar-icon"/>
+                    </graphic>
+                </Label>
                 <Label text="%theme.install.url" styleClass="text-muted"/>
 
                 <HBox spacing="10" alignment="CENTER_LEFT">
@@ -44,19 +61,31 @@
                     <Button fx:id="downloadButton"
                             text="%theme.download"
                             onAction="#handleDownloadTheme"
-                            styleClass="primary-button"/>
+                            styleClass="primary-button">
+                        <graphic>
+                            <FontIcon iconLiteral="fas-cloud-download-alt" iconSize="14" styleClass="sidebar-icon"/>
+                        </graphic>
+                    </Button>
                 </HBox>
                 <Separator/>
                 <Label text="%theme.install.file" styleClass="text-muted"/>
                 <Button text="%theme.choose_file"
                         onAction="#handleImportThemeLocal"
                         maxWidth="Infinity"
-                        styleClass="secondary-button"/>
+                        styleClass="secondary-button">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-folder-open" iconSize="14" styleClass="sidebar-icon"/>
+                    </graphic>
+                </Button>
 
                 <Label fx:id="statusLabel" text="" styleClass="status-label"/>
             </VBox>
             <VBox spacing="10" VBox.vgrow="ALWAYS" styleClass="card">
-                <Label text="%theme.available" styleClass="card-title"/>
+                <Label text="%theme.available" styleClass="card-title">
+                    <graphic>
+                        <FontIcon iconLiteral="fas-swatchbook" iconSize="14" styleClass="sidebar-icon"/>
+                    </graphic>
+                </Label>
                 <ScrollPane fitToWidth="true"
                             VBox.vgrow="ALWAYS"
                             styleClass="themes-scroll">

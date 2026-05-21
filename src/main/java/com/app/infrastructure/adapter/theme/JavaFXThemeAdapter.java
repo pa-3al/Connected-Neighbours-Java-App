@@ -26,22 +26,22 @@ public class JavaFXThemeAdapter implements ThemeRepository {
     private void loadBuiltInThemes() {
         themesMap.put("default-dark", Theme.builtIn(
             "default-dark", 
-            "🌙 Sombre (Défaut)", 
+            "Sombre (Défaut)",
             THEMES_RESOURCE_PATH + "default.css"
         ));
         themesMap.put("light", Theme.builtIn(
             "light", 
-            "☀️ Clair", 
+            "Clair",
             THEMES_RESOURCE_PATH + "light.css"
         ));
         themesMap.put("dracula", Theme.builtIn(
             "dracula",
-            "🧛 Dracula",
+            "Dracula",
             THEMES_RESOURCE_PATH + "dracula.css"
         ));
         themesMap.put("nord", Theme.builtIn(
             "nord",
-            "❄️ Nord",
+            "Nord",
             THEMES_RESOURCE_PATH + "nord.css"
         ));
     }

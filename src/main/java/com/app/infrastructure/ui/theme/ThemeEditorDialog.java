@@ -2,6 +2,8 @@ package com.app.infrastructure.ui.theme;
 
 import java.util.Optional;
 
+import org.kordamp.ikonli.javafx.FontIcon;
+
 import com.app.infrastructure.i18n.I18nService;
 
 import javafx.collections.FXCollections;
@@ -48,6 +50,13 @@ public class ThemeEditorDialog {
 
     public ThemeEditorDialog(I18nService i18n) {
         this.i18n = i18n;
+    }
+
+    private FontIcon createIcon(String literal) {
+        FontIcon icon = new FontIcon(literal);
+        icon.setIconSize(14);
+        icon.getStyleClass().add("sidebar-icon");
+        return icon;
     }
 
     public Optional<ThemeDraft> show(
@@ -175,6 +184,7 @@ public class ThemeEditorDialog {
         addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.primary_text"), textColor, textPreview);
         addRowWithPreview(baseGrid, row++, i18n.get("theme.editor.color.secondary_text"), mutedTextColor, mutedPreview);
         Tab baseTab = new Tab(i18n.get("theme.editor.tab.base"), baseGrid);
+        baseTab.setGraphic(createIcon("fas-swatchbook"));
 
         GridPane accentGrid = createColorGrid();
         row = 0;
@@ -189,6 +199,7 @@ public class ThemeEditorDialog {
         addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.warning"), btnWarningColor, btnWarningPreview);
         addRowWithPreview(accentGrid, row++, i18n.get("theme.editor.color.button.danger"), btnDangerColor, btnDangerPreview);
         Tab accentTab = new Tab(i18n.get("theme.editor.tab.accent"), accentGrid);
+        accentTab.setGraphic(createIcon("fas-bullseye"));
 
         GridPane inputGrid = createColorGrid();
         row = 0;
@@ -202,6 +213,7 @@ public class ThemeEditorDialog {
         addRowWithPreview(inputGrid, row++, i18n.get("theme.editor.color.scrollbar"), scrollbarColor, scrollPreview);
         inputGrid.add(validationLabel, 0, row++, 3, 1);
         Tab inputTab = new Tab(i18n.get("theme.editor.tab.input_ui"), inputGrid);
+        inputTab.setGraphic(createIcon("fas-cog"));
 
         GridPane chartGrid = createColorGrid();
         row = 0;
@@ -220,6 +232,7 @@ public class ThemeEditorDialog {
         chartGrid.add(editorBarChart, 0, row++, 3, 1);
         chartGrid.add(editorPieChart, 0, row++, 3, 1);
         Tab chartTab = new Tab("Charts", chartGrid);
+        chartTab.setGraphic(createIcon("fas-chart-pie"));
 
         GridPane layoutGrid = createColorGrid();
         row = 0;
@@ -233,6 +246,7 @@ public class ThemeEditorDialog {
 
         addRowWithPreview(layoutGrid, row++, i18n.get("theme.editor.layout.sidebar_color"), sidebarColorPicker, null);
         Tab layoutTab = new Tab(i18n.get("theme.editor.tab.layout"), layoutGrid);
+        layoutTab.setGraphic(createIcon("fas-ruler"));
 
         tabPane.getTabs().addAll(baseTab, accentTab, inputTab, chartTab, layoutTab);
 
@@ -266,8 +280,11 @@ public class ThemeEditorDialog {
 
         HBox btnRow2 = new HBox(5);
         Button btnSuccess = new Button(i18n.get("theme.preview.button.success"));
+        btnSuccess.setGraphic(createIcon("fas-check"));
         Button btnWarning = new Button(i18n.get("theme.preview.button.warning"));
+        btnWarning.setGraphic(createIcon("fas-exclamation-triangle"));
         Button btnDanger = new Button(i18n.get("theme.preview.button.danger"));
+        btnDanger.setGraphic(createIcon("fas-trash"));
         btnRow2.getChildren().addAll(btnSuccess, btnWarning, btnDanger);
         buttonsBox.getChildren().addAll(btnRow1, btnRow2);
 
@@ -395,10 +412,10 @@ public class ThemeEditorDialog {
 
             focusedTitle.setText(
                     baseSelected ? "Aperçu ciblé - Base" :
-                    accentSelected ? "Aperçu ciblé - Accent" :
-                    inputSelected ? "Aperçu ciblé - UI" :
-                    chartSelected ? "Aperçu ciblé - Charts" :
-                    "Aperçu ciblé - Layout"
+                            accentSelected ? "Aperçu ciblé - Accent" :
+                                    inputSelected ? "Aperçu ciblé - UI" :
+                                            chartSelected ? "Aperçu ciblé - Charts" :
+                                                    "Aperçu ciblé - Layout"
             );
             setVisibleManaged(focusedCard, baseSelected);
             setVisibleManaged(focusedButtons, accentSelected);
@@ -875,7 +892,13 @@ public class ThemeEditorDialog {
         if (contrast < 0.3) {
             warnings.append(i18n.get("theme.validation.contrast")).append("\n");
         }
-        validationLabel.setText(warnings.toString());
+        String warningText = warnings.toString();
+        validationLabel.setText(warningText);
+        if (!warningText.isEmpty()) {
+            validationLabel.setGraphic(createIcon("fas-exclamation-triangle"));
+        } else {
+            validationLabel.setGraphic(null);
+        }
     }
 
     private double getBrightness(Color color) {
