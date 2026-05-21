@@ -1014,3 +1014,11 @@
 .tool-icon-small {
     -fx-fill: -fx-text-muted;
 }
+
+.sidebar-icon {
+    -fx-icon-color: -fx-text-fill;
+}
+
+.button .font-icon {
+    -fx-icon-color: -fx-text-fill;
+}
