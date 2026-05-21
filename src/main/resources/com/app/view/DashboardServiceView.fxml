@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.ColumnConstraints?>
+
+<VBox fx:id="rootNode" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.app.infrastructure.ui.DashboardServiceController"
+      spacing="15" style="-fx-padding: 20;"
+      alignment="CENTER"
+      maxWidth="Infinity" maxHeight="Infinity">
+
+    <GridPane hgap="20" vgap="20" VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" fillWidth="true"/>
+            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" fillWidth="true"/>
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints percentHeight="100" vgrow="ALWAYS" fillHeight="true"/>
+        </rowConstraints>
+
+        <StackPane GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <PieChart fx:id="serviceStatusPieChart" title="%dashboard.service.chart.status.title" animated="false" maxWidth="Infinity" maxHeight="Infinity"/>
+            <Label fx:id="noDataLabelStatus" text="%dashboard.service.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
+        </StackPane>
+
+        <StackPane GridPane.columnIndex="1" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <BarChart fx:id="expectedDatesBarChart" title="%dashboard.service.chart.dates.title" legendVisible="false" animated="false" maxWidth="Infinity" maxHeight="Infinity">
+                <xAxis>
+                    <CategoryAxis fx:id="xAxisDates" label="%dashboard.service.chart.dates.xaxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis fx:id="yAxisDates" label="%dashboard.service.chart.dates.yaxis"/>
+                </yAxis>
+            </BarChart>
+            <Label fx:id="noDataLabelDates" text="%dashboard.service.nodata" style="-fx-font-size: 16px; -fx-text-fill: gray;" visible="false"/>
+        </StackPane>
+    </GridPane>
+</VBox>
