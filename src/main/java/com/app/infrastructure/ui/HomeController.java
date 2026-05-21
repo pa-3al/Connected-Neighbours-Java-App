@@ -25,6 +25,9 @@ public class HomeController {
     private DashboardEventController dashboardEventController;
 
     @FXML
+    private DashboardServiceController dashboardServiceController;
+
+    @FXML
     public void initialize() {
         tabNeighbourhoods.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
             if (isSelected && dashboardNeighbourhoodController != null) {
@@ -34,6 +37,11 @@ public class HomeController {
         tabEvents.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
             if (isSelected && dashboardEventController != null) {
                 dashboardEventController.refresh();
+            }
+        });
+        tabServices.selectedProperty().addListener((observable, wasSelected, isSelected) -> {
+            if (isSelected && dashboardServiceController != null) {
+                dashboardServiceController.refresh();
             }
         });
     }

@@ -2,6 +2,7 @@ package com.app.infrastructure.ui;
 
 import com.app.infrastructure.adapter.persistence.DatabaseConfig;
 import com.app.infrastructure.adapter.persistence.JdbcServiceRepository;
+import com.app.infrastructure.i18n.I18nService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -80,9 +81,15 @@ public class DashboardServiceController {
                 serviceStatusPieChart.getData().clear();
                 for (Map.Entry<String, Integer> entry : statusData.entrySet()) {
                     if (entry.getValue() != null && entry.getValue() > 0) {
-                        String status = entry.getKey() == null || entry.getKey().isBlank()
-                                ? "Inconnu" : entry.getKey();
-                        serviceStatusPieChart.getData().add(new PieChart.Data(status, entry.getValue()));
+                        String rawStatus = entry.getKey();
+                        String statusLabel = "Inconnu";
+
+                        if (rawStatus != null && !rawStatus.isBlank()) {
+                            String translated = I18nService.getInstance().get("service.status." + rawStatus);
+                            statusLabel = translated.startsWith("!") ? rawStatus : translated;
+                        }
+
+                        serviceStatusPieChart.getData().add(new PieChart.Data(statusLabel, entry.getValue()));
                     }
                 }
                 if (serviceStatusPieChart.getData().isEmpty()) {
@@ -114,9 +121,16 @@ public class DashboardServiceController {
 
                 for (Map.Entry<String, Integer> entry : sortedData.entrySet()) {
                     if (entry.getValue() != null) {
-                        String month = entry.getKey();
+                        String monthKey = entry.getKey();
+                        String displayMonth = monthKey;
+
+                        if (monthKey != null && monthKey.matches("\\d{4}-\\d{2}")) {
+                            String[] parts = monthKey.split("-");
+                            displayMonth = parts[1] + "/" + parts[0];
+                        }
+
                         int count = Math.max(0, entry.getValue());
-                        series.getData().add(new XYChart.Data<>(month, count));
+                        series.getData().add(new XYChart.Data<>(displayMonth, count));
                         if (count > maxCount) maxCount = count;
                     }
                 }

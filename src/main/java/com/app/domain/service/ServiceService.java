@@ -4,6 +4,7 @@ import com.app.domain.model.Service;
 import com.app.infrastructure.adapter.persistence.DatabaseConfig;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,9 +38,9 @@ public class ServiceService {
                         rs.getString("address_id"),
                         rs.getString("created_by_user_id"),
                         rs.getString("approved_by_moderator_id"),
-                        rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null,
-                        rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null,
-                        rs.getTimestamp("last_modified") != null ? rs.getTimestamp("last_modified").toLocalDateTime() : null,
+                        parseDbDate(rs.getString("created_at")),
+                        parseDbDate(rs.getString("updated_at")),
+                        parseDbDate(rs.getString("last_modified")),
                         rs.getString("sync_status") != null ? com.app.domain.model.SyncStatus.valueOf(rs.getString("sync_status")) : null
                 ));
             }
@@ -81,13 +82,31 @@ public class ServiceService {
             pstmt.setString(11, s.addressId());
             pstmt.setString(12, s.createdByUserId());
             pstmt.setString(13, s.approvedByModeratorId());
-            pstmt.setTimestamp(14, s.createdAt() != null ? Timestamp.valueOf(s.createdAt()) : null);
-            pstmt.setTimestamp(15, s.updatedAt() != null ? Timestamp.valueOf(s.updatedAt()) : null);
-            pstmt.setTimestamp(16, s.lastModified() != null ? Timestamp.valueOf(s.lastModified()) : null);
+            pstmt.setString(14, s.createdAt() != null ? s.createdAt().toString() : null);
+            pstmt.setString(15, s.updatedAt() != null ? s.updatedAt().toString() : null);
+            pstmt.setString(16, s.lastModified() != null ? s.lastModified().toString() : null);
             pstmt.setString(17, s.syncStatus() != null ? s.syncStatus().name() : null);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private LocalDateTime parseDbDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            return null;
+        }
+        try {
+            if (dateStr.matches("^\\d+$")) {
+                return LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(Long.parseLong(dateStr)),
+                        java.time.ZoneId.systemDefault()
+                );
+            }
+            String normalized = dateStr.replace(' ', 'T');
+            return LocalDateTime.parse(normalized);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
