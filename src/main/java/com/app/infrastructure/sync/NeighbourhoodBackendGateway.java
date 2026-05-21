@@ -36,7 +36,6 @@ public class NeighbourhoodBackendGateway {
         String jdbcUrl = toJdbcPostgresUrl(rawUrl);
         Map<String, Neighbourhood> byId = new HashMap<>();
 
-        // On caste le polygon en texte pour SQLite
         String sql = "SELECT id, name, description, city, postal_code, country_code, estimated_population, polygon::text as polygon, area FROM neighbourhood";
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl);
@@ -54,8 +53,8 @@ public class NeighbourhoodBackendGateway {
                         rs.getObject("estimated_population") != null ? rs.getInt("estimated_population") : null,
                         rs.getString("polygon"),
                         rs.getObject("area") != null ? rs.getInt("area") : null,
-                        null, // Pas de last_modified natif
-                        null  // Pas de sync_status distant
+                        null,
+                        null
                 );
                 byId.put(neighbourhood.id(), neighbourhood);
             }
