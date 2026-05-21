@@ -29,7 +29,7 @@
             <Tab fx:id="tabServices" text="%home.dashboard.tab.services">
                 <content>
                     <VBox alignment="CENTER" style="-fx-padding: 40;">
-                        <Label text="%home.dashboard.tab.empty" style="-fx-font-size: 14px; -fx-opacity: 0.6;"/>
+                        <fx:include fx:id="dashboardService" source="DashboardServiceView.fxml"/>
                     </VBox>
                 </content>
             </Tab>
