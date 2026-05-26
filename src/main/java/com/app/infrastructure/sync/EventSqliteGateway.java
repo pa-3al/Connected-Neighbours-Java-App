@@ -50,7 +50,7 @@ public class EventSqliteGateway {
     public void upsertEvent(Connection connection, Event e) throws SQLException {
         String sql = """
             INSERT INTO events (id, name, description, points, real_money_price, require_validation, signature_url, contract_id, address_id, created_by_user_id, approved_by_moderator_id, approved_by_admin_id, last_modified, sync_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET 
                 name=excluded.name, description=excluded.description, points=excluded.points, 
                 real_money_price=excluded.real_money_price, 
@@ -65,15 +65,15 @@ public class EventSqliteGateway {
             pstmt.setString(3, e.description());
             if (e.points() != null) pstmt.setInt(4, e.points()); else pstmt.setNull(4, Types.INTEGER);
             if (e.realMoneyPrice() != null) pstmt.setDouble(5, e.realMoneyPrice()); else pstmt.setNull(5, Types.DOUBLE);
-            pstmt.setBoolean(7, e.requireValidation() != null ? e.requireValidation() : false);
-            pstmt.setString(8, e.signatureUrl());
-            pstmt.setString(9, e.contractId());
-            pstmt.setString(10, e.addressId());
-            pstmt.setString(11, e.createdByUserId());
-            pstmt.setString(12, e.approvedByModeratorId());
-            pstmt.setString(13, e.approvedByAdminId());
-            pstmt.setTimestamp(14, e.lastModified() != null ? Timestamp.valueOf(e.lastModified()) : null);
-            pstmt.setString(15, e.syncStatus() != null ? e.syncStatus().name() : null);
+            pstmt.setBoolean(6, e.requireValidation() != null ? e.requireValidation() : false);
+            pstmt.setString(7, e.signatureUrl());
+            pstmt.setString(8, e.contractId());
+            pstmt.setString(9, e.addressId());
+            pstmt.setString(10, e.createdByUserId());
+            pstmt.setString(11, e.approvedByModeratorId());
+            pstmt.setString(12, e.approvedByAdminId());
+            pstmt.setTimestamp(13, e.lastModified() != null ? Timestamp.valueOf(e.lastModified()) : null);
+            pstmt.setString(14, e.syncStatus() != null ? e.syncStatus().name() : null);
             pstmt.executeUpdate();
         }
     }
