@@ -1,6 +1,18 @@
 package com.app.infrastructure.sync;
 
-import com.app.domain.service.*;
+import com.app.domain.service.AddressService;
+import com.app.domain.service.CategoryService;
+import com.app.domain.service.ContractTemplateService;
+import com.app.domain.service.EventParticipationService;
+import com.app.domain.service.EventPlanningService;
+import com.app.domain.service.EventService;
+import com.app.domain.service.EventTagService;
+import com.app.domain.service.IncidentService;
+import com.app.domain.service.MediaService;
+import com.app.domain.service.NeighbourhoodService;
+import com.app.domain.service.ServiceExpectedDateService;
+import com.app.domain.service.ServiceService;
+import com.app.domain.service.UserService;
 import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
 import com.app.infrastructure.config.ConfigProvider;
 import com.app.infrastructure.ui.AppState;
@@ -57,7 +69,7 @@ public class BackgroundSyncManager {
         this.eventParticipationSyncManager = new EventParticipationSyncManager(eventParticipationService, config, authClient);
         this.serviceSyncManager = new ServiceSyncManager(serviceService);
         this.serviceExpectedDateSyncManager = new ServiceExpectedDateSyncManager(serviceExpectedDateService);
-        this.desktopPluginSyncManager = new DesktopPluginSyncManager(new com.app.infrastructure.adapter.persistence.DatabaseConfig(), config, authClient);
+        this.desktopPluginSyncManager = new DesktopPluginSyncManager();
     }
 
     public void startAutomaticSyncOnStartup() {
