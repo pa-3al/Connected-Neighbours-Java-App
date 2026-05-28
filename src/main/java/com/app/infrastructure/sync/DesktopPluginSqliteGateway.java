@@ -92,4 +92,52 @@ public class DesktopPluginSqliteGateway {
         } catch (SQLException ignored) {
         }
     }
+
+    private PluginMetadata readPlugin(ResultSet rs) throws SQLException {
+        String id = readString(rs, "id", null);
+        String name = readString(rs, "name", id);
+        String version = readString(rs, "version", "1.0.0");
+        String author = readString(rs, "author", "Unknown");
+        String description = readString(rs, "description", "");
+        boolean enabled = readBoolean(rs, "enabled", false);
+        String downloadUrl = readString(rs, "download_url", null);
+        String sourceName = readString(rs, "source", PluginOrigin.REMOTE_CATALOG.name());
+        boolean isLoaded = readBoolean(rs, "is_loaded", false);
+
+        PluginOrigin source;
+        try {
+            source = PluginOrigin.valueOf(sourceName);
+        } catch (Exception ignored) {
+            source = PluginOrigin.REMOTE_CATALOG;
+        }
+
+        return new PluginMetadata(id, name, version, author, description, enabled, isLoaded, null, downloadUrl, source);
+    }
+
+    private String readString(ResultSet rs, String column, String defaultValue) {
+        try {
+            String value = rs.getString(column);
+            return value != null ? value : defaultValue;
+        } catch (SQLException e) {
+            return defaultValue;
+        }
+    }
+
+    private boolean readBoolean(ResultSet rs, String column, boolean defaultValue) {
+        try {
+            Object value = rs.getObject(column);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Boolean boolValue) {
+                return boolValue;
+            }
+            if (value instanceof Number number) {
+                return number.intValue() != 0;
+            }
+            return Boolean.parseBoolean(value.toString());
+        } catch (SQLException e) {
+            return defaultValue;
+        }
+    }
 }
