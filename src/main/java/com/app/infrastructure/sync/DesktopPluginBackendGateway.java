@@ -75,4 +75,22 @@ public class DesktopPluginBackendGateway {
 
         return plugins;
     }
+
+    public String fetchPluginDownloadUrl(String pluginId) {
+        if (pluginId == null || pluginId.isBlank()) {
+            return null;
+        }
+
+        try {
+            String url = configProvider.getAuthBaseUrl() + "/admin/desktop/plugins/" + URLEncoder.encode(pluginId, StandardCharsets.UTF_8);
+            String body = authenticatedHttpClient.send(java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .build()).body();
+            return extractDownloadUrl(body);
+        } catch (Exception e) {
+            DailyLogger.logWarn("Sync", "Failed to resolve desktop plugin download URL for " + pluginId + ": " + e.getMessage());
+            return null;
+        }
+    }
 }
