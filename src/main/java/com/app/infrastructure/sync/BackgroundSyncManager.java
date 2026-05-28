@@ -24,6 +24,7 @@ public class BackgroundSyncManager {
     private final EventParticipationSyncManager eventParticipationSyncManager;
     private final ServiceSyncManager serviceSyncManager;
     private final ServiceExpectedDateSyncManager serviceExpectedDateSyncManager;
+    private final DesktopPluginSyncManager desktopPluginSyncManager;
 
     public BackgroundSyncManager(
             UserService userService,
@@ -56,6 +57,7 @@ public class BackgroundSyncManager {
         this.eventParticipationSyncManager = new EventParticipationSyncManager(eventParticipationService, config, authClient);
         this.serviceSyncManager = new ServiceSyncManager(serviceService);
         this.serviceExpectedDateSyncManager = new ServiceExpectedDateSyncManager(serviceExpectedDateService);
+        this.desktopPluginSyncManager = new DesktopPluginSyncManager(new com.app.infrastructure.adapter.persistence.DatabaseConfig(), config, authClient);
     }
 
     public void startAutomaticSyncOnStartup() {
@@ -78,6 +80,7 @@ public class BackgroundSyncManager {
                             incidentSyncManager.syncWithBackend(conflict -> conflict.serverIncident());
                             serviceSyncManager.syncWithBackend(conflict -> conflict.server());
                             serviceExpectedDateSyncManager.syncWithBackend(conflict -> conflict.server());
+                            desktopPluginSyncManager.syncWithBackend();
                         } catch (Exception dbError) {
                             DailyLogger.logError("Sync", "Erreur BDD au démarrage, synchro ignorée: " + dbError.getMessage(), dbError);
                         } finally {
