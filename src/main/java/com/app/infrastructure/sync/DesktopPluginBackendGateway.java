@@ -143,4 +143,13 @@ public class DesktopPluginBackendGateway {
         }
         return trimmed;
     }
+
+    private String readString(ResultSet rs, String column, String defaultValue) {
+        try {
+            String value = rs.getString(column);
+            return value != null ? value : defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
 }
