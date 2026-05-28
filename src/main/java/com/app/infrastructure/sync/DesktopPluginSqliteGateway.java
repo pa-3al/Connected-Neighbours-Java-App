@@ -43,4 +43,43 @@ public class DesktopPluginSqliteGateway {
         }
         return plugins;
     }
+
+    public void replaceDesktopPlugins(Collection<PluginMetadata> plugins) throws SQLException {
+        try (Connection connection = openLocalConnection()) {
+            connection.setAutoCommit(false);
+            
+            List<String> loadedPlugins = new ArrayList<>();
+            try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery("SELECT id FROM desktop_plugins WHERE is_loaded = 1")) {
+                while (rs.next()) {
+                    loadedPlugins.add(rs.getString("id"));
+                }
+            }
+
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("DELETE FROM desktop_plugins");
+            }
+            String sql = """
+                INSERT INTO desktop_plugins (id, name, version, author, description, enabled, download_url, source, is_loaded, last_modified, sync_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                for (PluginMetadata plugin : plugins) {
+                    pstmt.setString(1, plugin.id());
+                    pstmt.setString(2, plugin.name());
+                    pstmt.setString(3, plugin.version());
+                    pstmt.setString(4, plugin.author());
+                    pstmt.setString(5, plugin.description());
+                    pstmt.setBoolean(6, plugin.enabled());
+                    pstmt.setString(7, plugin.downloadUrl());
+                    pstmt.setString(8, plugin.source() != null ? plugin.source().name() : PluginOrigin.REMOTE_CATALOG.name());
+                    pstmt.setBoolean(9, loadedPlugins.contains(plugin.id()) || plugin.isLoaded());
+                    pstmt.setTimestamp(10, null);
+                    pstmt.setString(11, null);
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+            }
+            connection.commit();
+        }
+    }
 }
