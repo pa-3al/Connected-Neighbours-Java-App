@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,28 +46,7 @@ public class DesktopPluginBackendGateway {
              ResultSet rs = stmt.executeQuery("SELECT * FROM desktop_plugins")) {
 
             while (rs.next()) {
-                String id = readString(rs, "id", null);
-                String pluginName = readString(rs, "plugin_name", null);
-                String pluginversion = readString(rs, "version", null);
-                String plugingDescription = readString(rs, "description", null);
-                boolean pluginEnabled = readBoolean(rs, "active", true);
-                String pluginAuthor = readString(rs, "author", "Voisinea");
-                if (id == null || id.isBlank()) {
-                    continue;
-                }
-
-                plugins.add(new PluginMetadata(
-                        id,
-                        pluginName,
-                        pluginversion,
-                        pluginAuthor,
-                        plugingDescription,
-                        pluginEnabled,
-                        false,
-                        null,
-                        fetchPluginDownloadUrl(id),
-                        PluginOrigin.REMOTE_CATALOG
-                ));
+                plugins.add(readPlugin(rs));
             }
             DailyLogger.logInfo("Sync", "Fetched " + plugins.size() + " desktop plugins from PostgreSQL.");
         } catch (Exception e) {
@@ -142,6 +122,27 @@ public class DesktopPluginBackendGateway {
             return jdbc.toString();
         }
         return trimmed;
+    }
+
+    private PluginMetadata readPlugin(ResultSet rs) throws SQLException {
+        String id = readString(rs, "id", null);
+        String name = readString(rs, "name", id);
+        String version = readString(rs, "version", "1.0.0");
+        String author = readString(rs, "author", "Unknown");
+        String description = readString(rs, "description", "");
+        boolean enabled = readBoolean(rs, "enabled", false);
+        String downloadUrl = readString(rs, "download_url", null);
+        String sourceName = readString(rs, "source", PluginOrigin.REMOTE_CATALOG.name());
+        boolean isLoaded = readBoolean(rs, "is_loaded", false);
+
+        PluginOrigin source;
+        try {
+            source = PluginOrigin.valueOf(sourceName);
+        } catch (Exception ignored) {
+            source = PluginOrigin.REMOTE_CATALOG;
+        }
+
+        return new PluginMetadata(id, name, version, author, description, enabled, isLoaded, null, downloadUrl, source);
     }
 
     private String readString(ResultSet rs, String column, String defaultValue) {
