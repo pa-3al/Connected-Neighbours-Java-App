@@ -152,4 +152,22 @@ public class DesktopPluginBackendGateway {
             return defaultValue;
         }
     }
+
+    private boolean readBoolean(ResultSet rs, String column, boolean defaultValue) {
+        try {
+            Object value = rs.getObject(column);
+            if (value == null) {
+                return defaultValue;
+            }
+            if (value instanceof Boolean boolValue) {
+                return boolValue;
+            }
+            if (value instanceof Number number) {
+                return number.intValue() != 0;
+            }
+            return Boolean.parseBoolean(value.toString());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
 }
