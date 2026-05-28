@@ -16,6 +16,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import com.app.domain.model.PluginMetadata;
+import com.app.domain.model.PluginOrigin;
 import com.app.domain.port.out.PluginRepository;
 import com.app.infrastructure.util.DailyLogger;
 import com.app.plugin.Plugin;
@@ -116,7 +117,9 @@ public class FileSystemPluginAdapter implements PluginRepository {
                         node.has("description") ? node.get("description").asText() : "",
                         true,
                         false,
-                        jarFile.getAbsolutePath()
+                        jarFile.getAbsolutePath(),
+                        null,
+                        PluginOrigin.LOCAL
                     );
                 }
             }
@@ -150,7 +153,9 @@ public class FileSystemPluginAdapter implements PluginRepository {
                             instance.getDescription(),
                             true,
                             false,
-                            jarFile.getAbsolutePath()
+                            jarFile.getAbsolutePath(),
+                            null,
+                            PluginOrigin.LOCAL
                         );
                     }
                     loader.close();
