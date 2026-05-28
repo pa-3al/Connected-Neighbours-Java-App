@@ -82,4 +82,14 @@ public class DesktopPluginSqliteGateway {
             connection.commit();
         }
     }
+
+    public void updatePluginLoadedStatus(String id, boolean isLoaded) {
+        String sql = "UPDATE desktop_plugins SET is_loaded = ? WHERE id = ?";
+        try (Connection connection = openLocalConnection(); PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setBoolean(1, isLoaded);
+            pstmt.setString(2, id);
+            pstmt.executeUpdate();
+        } catch (SQLException ignored) {
+        }
+    }
 }
