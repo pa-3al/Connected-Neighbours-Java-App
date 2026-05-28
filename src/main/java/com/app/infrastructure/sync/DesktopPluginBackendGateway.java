@@ -93,4 +93,54 @@ public class DesktopPluginBackendGateway {
             return null;
         }
     }
+
+    private String extractDownloadUrl(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+
+        String trimmed = body.trim();
+        try {
+            JsonNode node = objectMapper.readTree(trimmed);
+            JsonNode downloadUrlNode = node.get("jarDownloadUrl");
+            if (downloadUrlNode != null && !downloadUrlNode.isNull()) {
+                return downloadUrlNode.asText();
+            }
+        } catch (JsonProcessingException e) {
+            DailyLogger.logWarn("Sync", "Failed to resolve desktop plugin download URL : " + e.getMessage());
+            return null;
+        }
+        return trimmed;
+    }
+
+    private String toJdbcPostgresUrl(String rawUrl) {
+        String trimmed = rawUrl.trim();
+        if (trimmed.startsWith("jdbc:postgresql://")) {
+            return trimmed;
+        }
+        if (trimmed.startsWith("postgresql://") || trimmed.startsWith("postgres://")) {
+            String normalized = trimmed.startsWith("postgres://") ? "postgresql://" + trimmed.substring(11) : trimmed;
+            URI uri = URI.create(normalized);
+            StringBuilder jdbc = new StringBuilder("jdbc:postgresql://").append(uri.getHost()).append(":").append(uri.getPort() == -1 ? 5432 : uri.getPort()).append("/").append(uri.getPath().replaceFirst("^/", ""));
+            
+            boolean hasQuery = false;
+            if (uri.getRawQuery() != null && !uri.getRawQuery().isBlank()) {
+                jdbc.append("?").append(uri.getRawQuery());
+                hasQuery = true;
+            }
+            
+            String userInfo = uri.getUserInfo();
+            if (userInfo != null && !userInfo.isBlank()) {
+                String[] parts = userInfo.split(":", 2);
+                jdbc.append(hasQuery ? "&" : "?")
+                    .append("user=").append(parts[0]);
+                if (parts.length > 1) {
+                    jdbc.append("&password=").append(parts[1]);
+                }
+            }
+            
+            return jdbc.toString();
+        }
+        return trimmed;
+    }
 }
