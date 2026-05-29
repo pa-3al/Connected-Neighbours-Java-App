@@ -225,6 +225,19 @@ public class PluginService implements PluginUseCase {
     public void uninstallPlugin(String pluginId) {
         logger.info("PluginService", "Uninstalling plugin: " + pluginId);
 
+        PluginMetadata meta = pluginsMap.get(pluginId);
+        if (meta != null && meta.jarPath() != null) {
+            String fileName = new File(meta.jarPath()).getName();
+            if (fileName.endsWith(".jar")) {
+                fileName = fileName.substring(0, fileName.length() - 4);
+            }
+            try {
+                java.util.UUID.fromString(fileName);
+                desktopPluginSqliteGateway.updatePluginLoadedStatus(fileName, false);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
         disablePlugin(pluginId);
         pluginRepository.deletePlugin(pluginId);
         pluginsMap.remove(pluginId);
