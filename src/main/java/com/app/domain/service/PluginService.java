@@ -1,21 +1,38 @@
 package com.app.domain.service;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.app.domain.model.PluginMetadata;
 import com.app.domain.port.in.PluginUseCase;
 import com.app.domain.port.out.I18nPort;
 import com.app.domain.port.out.LoggerPort;
 import com.app.domain.port.out.PluginRepository;
+import com.app.infrastructure.adapter.auth.AuthenticatedHttpClient;
+import com.app.infrastructure.adapter.persistence.DatabaseConfig;
+import com.app.infrastructure.config.ConfigProvider;
+import com.app.infrastructure.sync.DesktopPluginBackendGateway;
+import com.app.infrastructure.sync.DesktopPluginSqliteGateway;
 import com.app.plugin.Plugin;
 import com.app.plugin.PluginContext;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 public class PluginService implements PluginUseCase {
     private final PluginRepository pluginRepository;
     private final PluginContext pluginContext;
     private final I18nPort i18n;
     private final LoggerPort logger;
+    private final DesktopPluginSqliteGateway desktopPluginSqliteGateway = new DesktopPluginSqliteGateway(new DatabaseConfig());
+    private final DesktopPluginBackendGateway desktopPluginBackendGateway = new DesktopPluginBackendGateway(new ConfigProvider(), new AuthenticatedHttpClient());
     private final Map<String, PluginMetadata> pluginsMap = new HashMap<>();
     private final Map<String, Plugin> loadedPlugins = new HashMap<>();
 
@@ -74,6 +91,11 @@ public class PluginService implements PluginUseCase {
             loadPlugins();
         }
         return new ArrayList<>(pluginsMap.values());
+    }
+
+    @Override
+    public List<PluginMetadata> getAvailablePlugins() {
+        return desktopPluginSqliteGateway.loadDesktopPlugins();
     }
 
     @Override
