@@ -180,6 +180,48 @@ public class PluginService implements PluginUseCase {
     }
 
     @Override
+    public void downloadPlugin(String pluginId) {
+        if (pluginId == null || pluginId.isBlank()) {
+            throw new IllegalArgumentException("Plugin id is required");
+        }
+
+        PluginMetadata available = getAvailablePlugins().stream()
+                .filter(plugin -> pluginId.equals(plugin.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(i18n.get("plugin.error.not_found", pluginId)));
+
+        String downloadUrl = available.downloadUrl();
+        if (downloadUrl == null || downloadUrl.isBlank()) {
+            downloadUrl = desktopPluginBackendGateway.fetchPluginDownloadUrl(pluginId);
+        }
+        if (downloadUrl == null || downloadUrl.isBlank()) {
+            throw new IllegalStateException("Missing plugin download URL for: " + pluginId);
+        }
+
+        Path tempJar = null;
+        Path renamedJar = null;
+        try {
+            tempJar = downloadJar(downloadUrl, pluginId);
+            renamedJar = tempJar.getParent().resolve(pluginId + ".jar");
+            Files.move(tempJar, renamedJar, StandardCopyOption.REPLACE_EXISTING);
+            tempJar = renamedJar;
+            
+            pluginRepository.installPlugin(renamedJar.toFile());
+            desktopPluginSqliteGateway.updatePluginLoadedStatus(pluginId, true);
+            loadPlugins();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download plugin: " + pluginId, e);
+        } finally {
+            if (tempJar != null) {
+                try {
+                    Files.deleteIfExists(tempJar);
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    @Override
     public void uninstallPlugin(String pluginId) {
         logger.info("PluginService", "Uninstalling plugin: " + pluginId);
 
@@ -230,5 +272,37 @@ public class PluginService implements PluginUseCase {
         loadedPlugins.remove(pluginId);
         pluginRepository.unloadPlugin(pluginId);
         pluginsMap.put(pluginId, baseMeta.withEnabled(false).withLoaded(false));
+    }
+
+    private Path downloadJar(String downloadUrl, String pluginId) throws IOException {
+        validateUrl(downloadUrl);
+        Path tempFile = Files.createTempFile("plugin-" + pluginId + "-", ".jar");
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(downloadUrl))
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() != 200) {
+                throw new IOException("Download failed with status: " + response.statusCode());
+            }
+            try (InputStream inputStream = response.body()) {
+                Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return tempFile;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Plugin download interrupted", e);
+        }
+    }
+
+    private void validateUrl(String url) {
+        URI uri = URI.create(url);
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+            throw new IllegalArgumentException("Only HTTP/HTTPS URLs are allowed, got: " + scheme);
+        }
     }
 }
