@@ -231,4 +231,30 @@ public class PluginController {
     private void setStatus(String message) {
         statusLabel.setText(message);
     }
+
+    private List<PluginMetadata> mergePlugins(List<PluginMetadata> installed, List<PluginMetadata> available) {
+        Map<String, PluginMetadata> merged = new LinkedHashMap<>();
+        for (PluginMetadata plugin : installed) {
+            merged.put(plugin.id(), plugin);
+        }
+        for (PluginMetadata plugin : available) {
+            merged.merge(plugin.id(), plugin, this::mergeCatalogIntoInstalled);
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private PluginMetadata mergeCatalogIntoInstalled(PluginMetadata installed, PluginMetadata catalog) {
+        return new PluginMetadata(
+                installed.id(),
+                installed.name() != null && !installed.name().isBlank() ? installed.name() : catalog.name(),
+                installed.version() != null && !installed.version().isBlank() ? installed.version() : catalog.version(),
+                installed.author() != null && !installed.author().isBlank() ? installed.author() : catalog.author(),
+                installed.description() != null && !installed.description().isBlank() ? installed.description() : catalog.description(),
+                installed.enabled(),
+                installed.isLoaded(),
+                installed.jarPath() != null ? installed.jarPath() : catalog.jarPath(),
+                catalog.downloadUrl() != null && !catalog.downloadUrl().isBlank() ? catalog.downloadUrl() : installed.downloadUrl(),
+                catalog.source() != null ? catalog.source() : installed.source()
+        );
+    }
 }
