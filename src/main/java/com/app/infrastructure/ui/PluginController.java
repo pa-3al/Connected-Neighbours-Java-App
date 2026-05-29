@@ -1,13 +1,18 @@
 package com.app.infrastructure.ui;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.app.domain.model.PluginMetadata;
+import com.app.domain.model.PluginOrigin;
 import com.app.domain.port.in.PluginUseCase;
 import com.app.infrastructure.util.KeyboardShortcutsHandler;
 
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import java.util.List;
-import java.util.Optional;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -86,7 +91,7 @@ public class PluginController {
     }
     private void refreshPluginsList() {
         pluginsContainer.getChildren().clear();
-        List<PluginMetadata> plugins = pluginUseCase.getInstalledPlugins();
+        List<PluginMetadata> plugins = mergePlugins(pluginUseCase.getInstalledPlugins(), pluginUseCase.getAvailablePlugins());
         countLabel.textProperty().bind(i18n.createStringBinding("plugin.count", plugins.size()));
         if (plugins.isEmpty()) {
             Label emptyLabel = new Label();
@@ -127,7 +132,9 @@ public class PluginController {
         descLabel.setWrapText(true);
         
         Label statusBadge = new Label();
-        if (plugin.enabled()) {
+        if (plugin.source() == PluginOrigin.REMOTE_CATALOG && (plugin.jarPath() == null || plugin.jarPath().isBlank())) {
+              statusBadge.setText("Available on the server");
+        } else if (plugin.enabled()) {
              statusBadge.textProperty().bind(plugin.isLoaded() ? i18n.createStringBinding("plugin.status.enabled") : i18n.createStringBinding("plugin.status.enabled.unloaded"));
         } else {
              statusBadge.textProperty().bind(i18n.createStringBinding("plugin.status.disabled"));
@@ -136,25 +143,52 @@ public class PluginController {
         statusBadge.getStyleClass().add("status-badge");
         HBox buttons = new HBox(8);
         buttons.setAlignment(Pos.CENTER_LEFT);
-        Button toggleBtn = new Button();
-        toggleBtn.textProperty().bind(plugin.enabled() ? i18n.createStringBinding("plugin.action.disable") : i18n.createStringBinding("plugin.action.enable"));
-        toggleBtn.getStyleClass().add(plugin.enabled() ? "warning-button" : "success-button");
-        toggleBtn.setOnAction(e -> handleTogglePlugin(plugin));
-        buttons.getChildren().add(toggleBtn);
+        if (plugin.source() == PluginOrigin.REMOTE_CATALOG && (plugin.jarPath() == null || plugin.jarPath().isBlank())) {
+            Button downloadBtn = new Button();
+            downloadBtn.setText("Download");
+            downloadBtn.getStyleClass().add("success-button");
+            downloadBtn.setOnAction(e -> handleDownloadPlugin(plugin));
+            buttons.getChildren().add(downloadBtn);
+        } else {
+            Button toggleBtn = new Button();
+            toggleBtn.textProperty().bind(plugin.enabled() ? i18n.createStringBinding("plugin.action.disable") : i18n.createStringBinding("plugin.action.enable"));
+            toggleBtn.getStyleClass().add(plugin.enabled() ? "warning-button" : "success-button");
+            toggleBtn.setOnAction(e -> handleTogglePlugin(plugin));
+            buttons.getChildren().add(toggleBtn);
+        }
+
+        Label sourceBadge = new Label();
+        if (plugin.source() == PluginOrigin.BUILTIN) {
+            sourceBadge.textProperty().bind(i18n.createStringBinding("plugin.badge.builtin"));
+            sourceBadge.getStyleClass().add("badge-builtin");
+        } else if (plugin.source() == PluginOrigin.REMOTE_CATALOG) {
+            sourceBadge.setText("Server");
+            sourceBadge.getStyleClass().add("badge-server");
+        } else {
+            sourceBadge.setText("Local");
+            sourceBadge.getStyleClass().add("badge-local");
+        }
+        buttons.getChildren().add(sourceBadge);
+
         if (plugin.jarPath() != null) {
             Button uninstallBtn = new Button();
             uninstallBtn.textProperty().bind(i18n.createStringBinding("plugin.action.uninstall"));
             uninstallBtn.getStyleClass().add("danger-button");
             uninstallBtn.setOnAction(e -> handleUninstallPlugin(plugin));
             buttons.getChildren().add(uninstallBtn);
-        } else {
-            Label builtinBadge = new Label();
-            builtinBadge.textProperty().bind(i18n.createStringBinding("plugin.badge.builtin"));
-            builtinBadge.getStyleClass().add("badge-builtin");
-            buttons.getChildren().add(builtinBadge);
         }
         card.getChildren().addAll(header, authorLabel, descLabel, statusBadge, buttons);
         return card;
+    }
+
+    private void handleDownloadPlugin(PluginMetadata plugin) {
+        try {
+            pluginUseCase.downloadPlugin(plugin.id());
+            refreshPluginsList();
+            setStatus(i18n.get("status.success", i18n.get("plugin.status.installed.success", plugin.name())));
+        } catch (Exception e) {
+            setStatus(i18n.get("status.error", i18n.get("plugin.status.installed.error", e.getMessage())));
+        }
     }
     private void handleTogglePlugin(PluginMetadata plugin) {
         try {
@@ -196,5 +230,31 @@ public class PluginController {
     }
     private void setStatus(String message) {
         statusLabel.setText(message);
+    }
+
+    private List<PluginMetadata> mergePlugins(List<PluginMetadata> installed, List<PluginMetadata> available) {
+        Map<String, PluginMetadata> merged = new LinkedHashMap<>();
+        for (PluginMetadata plugin : installed) {
+            merged.put(plugin.id(), plugin);
+        }
+        for (PluginMetadata plugin : available) {
+            merged.merge(plugin.id(), plugin, this::mergeCatalogIntoInstalled);
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private PluginMetadata mergeCatalogIntoInstalled(PluginMetadata installed, PluginMetadata catalog) {
+        return new PluginMetadata(
+                installed.id(),
+                installed.name() != null && !installed.name().isBlank() ? installed.name() : catalog.name(),
+                installed.version() != null && !installed.version().isBlank() ? installed.version() : catalog.version(),
+                installed.author() != null && !installed.author().isBlank() ? installed.author() : catalog.author(),
+                installed.description() != null && !installed.description().isBlank() ? installed.description() : catalog.description(),
+                installed.enabled(),
+                installed.isLoaded(),
+                installed.jarPath() != null ? installed.jarPath() : catalog.jarPath(),
+                catalog.downloadUrl() != null && !catalog.downloadUrl().isBlank() ? catalog.downloadUrl() : installed.downloadUrl(),
+                catalog.source() != null ? catalog.source() : installed.source()
+        );
     }
 }

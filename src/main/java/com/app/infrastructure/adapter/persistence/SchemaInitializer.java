@@ -132,6 +132,22 @@ public class SchemaInitializer {
             """);
 
             stmt.execute("""
+                CREATE TABLE IF NOT EXISTS desktop_plugins (
+                    id VARCHAR(100) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    version VARCHAR(100),
+                    author VARCHAR(255),
+                    description TEXT,
+                    enabled BOOLEAN DEFAULT 0,
+                    download_url TEXT,
+                    source VARCHAR(50),
+                    is_loaded BOOLEAN DEFAULT 0,
+                    last_modified TIMESTAMP,
+                    sync_status VARCHAR(50)
+                )
+            """);
+
+            stmt.execute("""
                 CREATE TABLE IF NOT EXISTS media (
                     id VARCHAR(36) PRIMARY KEY,
                     type VARCHAR(50),

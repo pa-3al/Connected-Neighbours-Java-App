@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
+import com.app.domain.model.PluginOrigin;
+
 class PluginMetadataTest {
 
     @Test
@@ -19,11 +21,13 @@ class PluginMetadataTest {
         assertTrue(metadata.enabled());
         assertTrue(metadata.isLoaded());
         assertNull(metadata.jarPath());
+        assertNull(metadata.downloadUrl());
+        assertEquals(PluginOrigin.BUILTIN, metadata.source());
     }
 
     @Test
     void withEnabledShouldPreserveOtherFields() {
-        PluginMetadata metadata = new PluginMetadata("plug-1", "Plugin", "2.0.0", "Author", "Desc", false, true, "/tmp/plugin.jar");
+        PluginMetadata metadata = new PluginMetadata("plug-1", "Plugin", "2.0.0", "Author", "Desc", false, true, "/tmp/plugin.jar", "https://example.com/plugin.jar", PluginOrigin.LOCAL);
 
         PluginMetadata updated = metadata.withEnabled(true);
 
@@ -35,11 +39,13 @@ class PluginMetadataTest {
         assertTrue(updated.enabled());
         assertEquals(metadata.isLoaded(), updated.isLoaded());
         assertEquals(metadata.jarPath(), updated.jarPath());
+        assertEquals(metadata.downloadUrl(), updated.downloadUrl());
+        assertEquals(metadata.source(), updated.source());
     }
 
     @Test
     void withLoadedShouldPreserveOtherFields() {
-        PluginMetadata metadata = new PluginMetadata("plug-1", "Plugin", "2.0.0", "Author", "Desc", true, false, "/tmp/plugin.jar");
+        PluginMetadata metadata = new PluginMetadata("plug-1", "Plugin", "2.0.0", "Author", "Desc", true, false, "/tmp/plugin.jar", "https://example.com/plugin.jar", PluginOrigin.LOCAL);
 
         PluginMetadata updated = metadata.withLoaded(true);
 
@@ -51,5 +57,7 @@ class PluginMetadataTest {
         assertEquals(metadata.enabled(), updated.enabled());
         assertTrue(updated.isLoaded());
         assertEquals(metadata.jarPath(), updated.jarPath());
+        assertEquals(metadata.downloadUrl(), updated.downloadUrl());
+        assertEquals(metadata.source(), updated.source());
     }
 }

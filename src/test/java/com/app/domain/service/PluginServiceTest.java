@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.app.domain.model.PluginMetadata;
+import com.app.domain.model.PluginOrigin;
 import com.app.domain.port.out.I18nPort;
 import com.app.domain.port.out.LoggerPort;
 import com.app.domain.port.out.PluginRepository;
@@ -110,6 +111,11 @@ class PluginServiceTest {
         assertEquals("my-plugin.jar", mockRepo.installedPluginFiles.get(0).getName());
     }
 
+    @Test
+    void testGetAvailablePlugins_shouldReturnCatalogListSafely() {
+        assertNotNull(pluginService.getAvailablePlugins());
+    }
+
     private static class MockPluginRepository implements PluginRepository {
         List<String> deletedPlugins = new ArrayList<>();
         List<File> installedPluginFiles = new ArrayList<>();
@@ -117,11 +123,11 @@ class PluginServiceTest {
         public List<PluginMetadata> discoverAndLoadPlugins() {
             List<PluginMetadata> discovered = new ArrayList<>(List.of(
                 new PluginMetadata("test-plugin", "Test Plugin", "1.0.0", "Test Author",
-                    "A test plugin", true, false, null)
+                    "A test plugin", true, false, null, null, PluginOrigin.LOCAL)
             ));
             for (File installed : installedPluginFiles) {
                 discovered.add(new PluginMetadata("my-plugin", "My Plugin", "1.0.0", "Test Author",
-                    "An installed plugin", true, false, installed.getPath()));
+                    "An installed plugin", true, false, installed.getPath(), null, PluginOrigin.LOCAL));
             }
             return discovered;
         }
