@@ -2,6 +2,7 @@ package com.app.infrastructure.sync;
 
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -63,7 +64,7 @@ public class DesktopPluginBackendGateway {
 
         try {
             String url = configProvider.getAuthBaseUrl() + "/admin/desktop/plugins/" + URLEncoder.encode(pluginId, StandardCharsets.UTF_8);
-            String body = authenticatedHttpClient.send(java.net.http.HttpRequest.newBuilder()
+            String body = authenticatedHttpClient.send(HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .GET()
                     .build()).body();
@@ -126,23 +127,16 @@ public class DesktopPluginBackendGateway {
 
     private PluginMetadata readPlugin(ResultSet rs) throws SQLException {
         String id = readString(rs, "id", null);
-        String name = readString(rs, "name", id);
+        String name = readString(rs, "plugin_name", id);
         String version = readString(rs, "version", "1.0.0");
-        String author = readString(rs, "author", "Unknown");
+        String author = readString(rs, "author", "Voisinea");
         String description = readString(rs, "description", "");
-        boolean enabled = readBoolean(rs, "enabled", false);
-        String downloadUrl = readString(rs, "download_url", null);
-        String sourceName = readString(rs, "source", PluginOrigin.REMOTE_CATALOG.name());
-        boolean isLoaded = readBoolean(rs, "is_loaded", false);
+        boolean enabled = readBoolean(rs, "active", false);;
+        String downloadUrl = fetchPluginDownloadUrl(id);
+        PluginOrigin sourceName = PluginOrigin.REMOTE_CATALOG;
+        boolean isLoaded = false;
 
-        PluginOrigin source;
-        try {
-            source = PluginOrigin.valueOf(sourceName);
-        } catch (Exception ignored) {
-            source = PluginOrigin.REMOTE_CATALOG;
-        }
-
-        return new PluginMetadata(id, name, version, author, description, enabled, isLoaded, null, downloadUrl, source);
+        return new PluginMetadata(id, name, version, author, description, enabled, isLoaded, null, downloadUrl, sourceName);
     }
 
     private String readString(ResultSet rs, String column, String defaultValue) {
