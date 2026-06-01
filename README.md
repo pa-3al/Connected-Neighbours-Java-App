@@ -4,7 +4,8 @@ Cette application est destinée aux administrateurs de la plateforme Voisinea.
 
 Cette application fait partie du Projet Annuel de 3ème année Architecture des logiciels, Année 2025-2026.
 
-Développé par : 
+Développé par :
+
 - Erwan LUCE-GUEDON
 - Racim ADJIRI
 - Rémy THIBAUT
@@ -13,7 +14,7 @@ Développé par :
 
 Pour faire tourner cette application, la version Java 21 est obligatoire.
 
-### Installation 
+### Installation
 
 ```sh
 git clone git@github.com:pa-3al/Connected-Neighbours-Java-App.git
@@ -26,7 +27,7 @@ cd Connected-Neighbours-Java-App
 mvn clean
 ```
 
-### Lancement de l'application 
+### Lancement de l'application
 
 ```sh
 mvn javafx:run
@@ -38,7 +39,7 @@ mvn javafx:run
 app.auth.admin.login2faPath=/admin/auth/login-2fa
 app.auth.admin.loginPath=/admin/auth/login
 app.auth.admin.ssoAuthorizePath=/admin/auth/desktop/sso
-app.auth.baseUrl=   # URL du backend
+app.auth.baseUrl= # URL du backend
 app.auth.bypass.enabled=false
 app.auth.bypass.token=local-dev-token
 app.auth.sso.timeout=180
@@ -52,4 +53,3 @@ app.sync.interval=60
 app.update.checkUrl= # URL de check de des dernières versions
 app.update.timeout=30
 ```
-
