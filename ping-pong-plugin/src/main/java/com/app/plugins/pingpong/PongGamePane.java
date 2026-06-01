@@ -42,6 +42,32 @@ public class PongGamePane extends StackPane {
             if (e.getCode() == KeyCode.M) kM = false;
         });
 
+        focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                loop.stop();
+                kZ = false; kS = false; kP = false; kM = false;
+            } else {
+                loop.start();
+            }
+        });
+
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
+                    if (newWindow != null) {
+                        newWindow.focusedProperty().addListener((obs3, oldFocus, newFocus) -> {
+                            if (!newFocus) {
+                                loop.stop();
+                                kZ = false; kS = false; kP = false; kM = false;
+                            } else if (isFocused()) {
+                                loop.start();
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
         loop = new AnimationTimer() {
             @Override
             public void handle(long now) {
