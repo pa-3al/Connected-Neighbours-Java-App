@@ -1,0 +1,7 @@
+{
+  "id": "drawing-canvas",
+  "name": "Drawing Canvas Plugin",
+  "version": "1.0.0",
+  "author": "Connected-Neighbours",
+  "description": "Ajoute une zone de dessin interactive dans la sidebar."
+}
