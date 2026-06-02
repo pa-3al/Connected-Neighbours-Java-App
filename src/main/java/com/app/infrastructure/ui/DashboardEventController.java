@@ -100,7 +100,15 @@ public class DashboardEventController {
         }
 
         XYChart.Series<String, Number> s = new XYChart.Series<>();
-        data.forEach((k, v) -> s.getData().add(new XYChart.Data<>(k, v)));
+        data.forEach((k, v) -> {
+            if (k != null && !k.isBlank()) s.getData().add(new XYChart.Data<>(k, v));
+        });
+
+        if (s.getData().isEmpty()) {
+            chart.setVisible(false);
+            label.setVisible(true);
+            return;
+        }
 
         chart.getData().add(s);
         chart.setVisible(true);
@@ -121,6 +129,7 @@ public class DashboardEventController {
         DateTimeFormatter out = DateTimeFormatter.ofPattern("MM/yyyy");
 
         data.forEach((k, v) -> {
+            if (k == null || k.isBlank()) return;
             String formatted = k;
             try {
                 formatted = YearMonth.parse(k, in).format(out);
@@ -147,6 +156,7 @@ public class DashboardEventController {
         DateTimeFormatter out = DateTimeFormatter.ofPattern("MM/yyyy");
 
         data.forEach((k, v) -> {
+            if (k == null || k.isBlank()) return;
             String formatted = k;
             try {
                 formatted = YearMonth.parse(k, in).format(out);
