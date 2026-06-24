@@ -76,7 +76,7 @@ public class BackgroundSyncManager {
         Thread syncThread = new Thread(() -> {
             while (true) {
                 try {
-                    if (ConnectivityUtil.checkConnectivity()) {
+                    if (AppState.getInstance().isOnline() && ConnectivityUtil.checkConnectivity()) {
                         Platform.runLater(() -> AppState.getInstance().setSyncing(true));
                         try {
                             userService.syncUsers();

@@ -118,7 +118,7 @@ public class MainController {
     }
 
     private void runSynchronization() {
-        if (incidentSyncManager == null || AppState.getInstance().isSyncing()) {
+        if (incidentSyncManager == null || AppState.getInstance().isSyncing() || !AppState.getInstance().isOnline()) {
             return;
         }
         AppState.getInstance().setSyncing(true);

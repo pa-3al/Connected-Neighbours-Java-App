@@ -68,6 +68,7 @@ public class SettingsController {
 
     private com.app.domain.model.UpdateInfo pendingUpdate;
     private Path downloadedUpdate;
+    private boolean toggleGuard = false;
     private final com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
 
     public SettingsController(CheckUpdateUseCase checkUpdateUseCase, ThemeRepository themeRepository) {
@@ -178,10 +179,25 @@ public class SettingsController {
                         appState.onlineProperty(), i18n.localeProperty()
                 )
         );
+        appState.onlineProperty().addListener((obs, oldVal, newVal) -> {
+            if (onlineToggle.isSelected() != newVal) {
+                toggleGuard = true;
+                onlineToggle.setSelected(newVal);
+                toggleGuard = false;
+            }
+        });
         onlineToggle.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            appState.setOnline(newVal);
+            if (toggleGuard) return;
+            if (newVal) {
+                appState.forceOnline();
+            } else {
+                appState.forceOffline();
+            }
             log(i18n.get(newVal ? "settings.online.log.active" : "settings.online.log.inactive"));
         });
+        if (testDbButton != null) {
+            testDbButton.disableProperty().bind(appState.onlineProperty().not());
+        }
     }
 
     private void resetDownloadUI() {
@@ -455,6 +471,10 @@ public class SettingsController {
 
     @FXML
     private void handleTestDbConfig() {
+        if (!AppState.getInstance().isOnline()) {
+            log(i18n.get("status.error", i18n.get("sync.offline.blocked")));
+            return;
+        }
         String hostDb = dbUrlField.getText() != null ? dbUrlField.getText() : "";
         String user = dbUserField.getText() != null ? dbUserField.getText() : "";
         String pass = dbPasswordField.getText() != null ? dbPasswordField.getText() : "";
