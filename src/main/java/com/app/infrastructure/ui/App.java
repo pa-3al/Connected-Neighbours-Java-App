@@ -174,12 +174,23 @@ public class App extends Application {
     }
 
     private void runAutomaticUpdate(UpdateService updateService, Runnable afterUpdateCheck) {
+        String pendingVersion = updateService.consumePendingVersion();
+        String currentVersion = updateService.getCurrentVersion();
+        boolean previousUpdateFailed = pendingVersion != null && !pendingVersion.equals(currentVersion);
+        if (previousUpdateFailed) {
+            DailyLogger.logWarn("App", "Previous update to " + pendingVersion + " did not apply (still on " + currentVersion + "); skipping auto-install to avoid a restart loop");
+        }
         updateService.checkForUpdates()
                 .thenCompose(info -> {
                     if (info == null) {
                         return java.util.concurrent.CompletableFuture.completedFuture(false);
                     }
                     Platform.runLater(() -> showUpdateNotice(info));
+                    if (previousUpdateFailed && info.version().equals(pendingVersion)) {
+                        DailyLogger.logWarn("App", "Auto-install skipped for " + info.version() + "; install manually from Settings");
+                        return java.util.concurrent.CompletableFuture.completedFuture(false);
+                    }
+                    updateService.markUpdatePending(info.version());
                     return updateService.downloadUpdate(info, null)
                             .thenApply(path -> {
                                 updateService.applyUpdate(path);
@@ -192,10 +203,25 @@ public class App extends Application {
                     }
                 })
                 .exceptionally(ex -> {
-                    DailyLogger.logError("App", "Automatic update failed", getRootCause(ex));
-                    Platform.runLater(afterUpdateCheck);
+                    updateService.consumePendingVersion();
+                    Throwable cause = getRootCause(ex);
+                    DailyLogger.logError("App", "Automatic update failed", cause);
+                    Platform.runLater(() -> {
+                        showUpdateError(cause);
+                        afterUpdateCheck.run();
+                    });
                     return null;
                 });
+    }
+
+    private void showUpdateError(Throwable cause) {
+        com.app.infrastructure.i18n.I18nService i18n = com.app.infrastructure.i18n.I18nService.getInstance();
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(i18n.get("dialog.update.failed.title"));
+        alert.setHeaderText(i18n.get("dialog.update.failed.header"));
+        alert.setContentText(i18n.get("dialog.update.failed.content", cause.getMessage()));
+        alert.initOwner(mainStage);
+        alert.show();
     }
 
     private void showUpdateNotice(UpdateInfo info) {

@@ -57,25 +57,13 @@ public class ConfigProvider {
     }
 
     public void saveSyncDatabaseConfig(String url) {
-        Properties props = new Properties();
-        File configFile = new File("src/main/resources/application.properties");
+        properties.setProperty("app.sync.db.url", url);
 
-        try {
-            if (configFile.exists()) {
-                try (FileInputStream in = new FileInputStream(configFile)) {
-                    props.load(in);
-                }
-            }
-
-            props.setProperty("app.sync.db.url", url);
-
-            try (FileOutputStream out = new FileOutputStream(configFile)) {
-                props.store(out, "Mise à jour via l'interface des paramètres");
-            }
-
-            System.out.println("Configuration enregistrée dans : " + configFile.getAbsolutePath());
+        File externalFile = getExternalConfigFile();
+        try (FileOutputStream out = new FileOutputStream(externalFile)) {
+            properties.store(out, "Mise à jour via l'interface des paramètres");
         } catch (IOException e) {
-            e.printStackTrace();
+            com.app.infrastructure.util.DailyLogger.logError("Config", "Failed to save sync config", e);
         }
     }
 

@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 public class UpdateService implements CheckUpdateUseCase {
     private static final String CURRENT_VERSION = resolveCurrentVersion();
     private static final Path UPDATES_DIR = Paths.get("updates");
+    private static final Path UPDATE_MARKER = UPDATES_DIR.resolve(".update-pending");
     private final UpdateRepository updateRepository;
     private final LoggerPort logger;
     public UpdateService(UpdateRepository updateRepository, LoggerPort logger) {
@@ -138,6 +139,28 @@ public class UpdateService implements CheckUpdateUseCase {
     @Override
     public String getCurrentVersion() {
         return CURRENT_VERSION;
+    }
+
+    public void markUpdatePending(String version) {
+        try {
+            Files.createDirectories(UPDATES_DIR);
+            Files.writeString(UPDATE_MARKER, version == null ? "" : version);
+        } catch (IOException e) {
+            logger.warn("UpdateService", "Could not write update marker");
+        }
+    }
+
+    public String consumePendingVersion() {
+        try {
+            if (Files.exists(UPDATE_MARKER)) {
+                String version = Files.readString(UPDATE_MARKER).trim();
+                Files.deleteIfExists(UPDATE_MARKER);
+                return version.isEmpty() ? null : version;
+            }
+        } catch (IOException e) {
+            logger.warn("UpdateService", "Could not read update marker");
+        }
+        return null;
     }
     private boolean shouldUsePatch(UpdateInfo updateInfo) {
         return updateInfo.patchUrl() != null && !updateInfo.patchUrl().isBlank() && getRunningJarPath() != null;
