@@ -83,6 +83,7 @@ public class IncidentController {
 
         btnResolve.setDisable(true);
         btnDelete.setDisable(true);
+        btnSync.disableProperty().bind(AppState.getInstance().onlineProperty().not());
 
         KeyboardShortcutsHandler.registerContext(incidentRoot, this::handleShortcut);
     }
@@ -184,6 +185,10 @@ public class IncidentController {
 
     @FXML
     private void handleSync() {
+        if (!AppState.getInstance().isOnline()) {
+            showError(i18n.get("incident.sync.error.title"), i18n.get("sync.offline.blocked"));
+            return;
+        }
         try {
             userService.syncUsers();
             IncidentSyncReport report = syncManager.syncWithBackend(conflictDialog::resolve);
